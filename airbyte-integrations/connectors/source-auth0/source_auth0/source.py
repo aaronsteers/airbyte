@@ -35,31 +35,34 @@ class Auth0Stream(HttpStream, ABC):
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
         body = response.json()
-        if "total" in body and "start" in body and "limit" in body and "length" in body:
-            try:
-                start = int(body["start"])
-                limit = int(body["limit"])
-                length = int(body["length"])
-                total = int(body["total"])
-                current = start // limit
-                if length < limit or (start + length) == total:
-                    return None
-                else:
-                    token = {
-                        "page": current + 1,
-                        "per_page": limit,
-                    }
-                    return token
-            except Exception:
-                return None
-        else:
-            if not body or len(body) < self.page_size:
-                return None
-            else:
-                return {
+        if (
+            "total" not in body
+            or "start" not in body
+            or "limit" not in body
+            or "length" not in body
+        ):
+            return (
+                None
+                if not body or len(body) < self.page_size
+                else {
                     "page": 0,
                     "per_page": self.page_size,
                 }
+            )
+        try:
+            start = int(body["start"])
+            limit = int(body["limit"])
+            length = int(body["length"])
+            total = int(body["total"])
+            if length < limit or (start + length) == total:
+                return None
+            current = start // limit
+            return {
+                "page": current + 1,
+                "per_page": limit,
+            }
+        except Exception:
+            return None
 
     def request_params(self, next_page_token: Mapping[str, Any] = None, **kwargs) -> MutableMapping[str, Any]:
         return {

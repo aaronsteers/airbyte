@@ -46,9 +46,7 @@ class CloseComStream(HttpStream, ABC):
             skip = parsed.get("_skip", 0)
             limit = parsed.get("_limit", len(data))
             return {"_skip": int(skip) + int(limit)}
-        if cursor_next:
-            return {"_cursor": cursor_next}
-        return None
+        return {"_cursor": cursor_next} if cursor_next else None
 
     def request_params(
         self,
@@ -59,11 +57,11 @@ class CloseComStream(HttpStream, ABC):
 
         params = {}
         if self.number_of_items_per_page:
-            params.update({"_limit": self.number_of_items_per_page})
+            params["_limit"] = self.number_of_items_per_page
 
         # Handle pagination by inserting the next page's token in the request parameters
         if next_page_token:
-            params.update(next_page_token)
+            params |= next_page_token
 
         return params
 
@@ -79,8 +77,7 @@ class CloseComStream(HttpStream, ABC):
         Rate Limits Docs: https://developer.close.com/#ratelimits"""
 
         backoff_time = None
-        error = response.json().get("error", backoff_time)
-        if error:
+        if error := response.json().get("error", backoff_time):
             backoff_time = error.get("rate_reset", backoff_time)
         return backoff_time
 

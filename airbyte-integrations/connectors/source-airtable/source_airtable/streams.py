@@ -30,7 +30,7 @@ class AirtableBases(HttpStream):
         return "meta/bases"
 
     def should_retry(self, response: requests.Response) -> bool:
-        if response.status_code == 403 or response.status_code == 422:
+        if response.status_code in {403, 422}:
             self.logger.error(f"Stream {self.name}: permission denied or entity is unprocessable. Skipping.")
             setattr(self, "raise_on_http_errors", False)
             return False
@@ -49,10 +49,7 @@ class AirtableBases(HttpStream):
         """
         The bases list could be more than 100 records, therefore the pagination is required to fetch all of them.
         """
-        next_page = response.json().get("offset")
-        if next_page:
-            return next_page
-        return None
+        return next_page if (next_page := response.json().get("offset")) else None
 
     def request_params(self, next_page_token: str = None, **kwargs) -> Mapping[str, Any]:
         params = {}
@@ -70,8 +67,7 @@ class AirtableBases(HttpStream):
                 ]
             }
         """
-        records = response.json().get(self.name)
-        yield from records
+        yield from response.json().get(self.name)
 
 
 class AirtableTables(AirtableBases):
@@ -105,7 +101,7 @@ class AirtableStream(HttpStream, ABC):
         return self.stream_name
 
     def should_retry(self, response: requests.Response) -> bool:
-        if response.status_code == 403 or response.status_code == 422:
+        if response.status_code in {403, 422}:
             self.logger.error(f"Stream {self.name}: permission denied or entity is unprocessable. Skipping.")
             setattr(self, "raise_on_http_errors", False)
             return False
@@ -125,10 +121,7 @@ class AirtableStream(HttpStream, ABC):
         return self.stream_schema
 
     def next_page_token(self, response: requests.Response, **kwargs) -> Optional[Mapping[str, Any]]:
-        next_page = response.json().get("offset")
-        if next_page:
-            return next_page
-        return None
+        return next_page if (next_page := response.json().get("offset")) else None
 
     def request_params(self, next_page_token: Mapping[str, Any] = None, **kwargs) -> MutableMapping[str, Any]:
         """

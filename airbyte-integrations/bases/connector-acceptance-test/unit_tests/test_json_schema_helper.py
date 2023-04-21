@@ -253,7 +253,5 @@ def test_find_and_get_nodes(keys: List[Text], num_paths: int, last_value: Any):
     assert len(variant_paths) == num_paths
 
     if variant_paths:
-        values_at_nodes = []
-        for path in variant_paths:
-            values_at_nodes.append(schema_helper.get_node(path))
+        values_at_nodes = [schema_helper.get_node(path) for path in variant_paths]
         assert last_value in values_at_nodes

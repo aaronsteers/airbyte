@@ -36,8 +36,9 @@ def get_secrets_properties_from_registry_entry(registry_entry: dict) -> List[str
         else:
             property_path = absolute_path
         property_definition = dpath.util.get(spec_properties, property_path)
-        marked_as_secret = property_definition.get("airbyte_secret", False)
-        if marked_as_secret:
+        if marked_as_secret := property_definition.get(
+            "airbyte_secret", False
+        ):
             secret_properties.append(property_path.split("/")[-1])
     return secret_properties
 

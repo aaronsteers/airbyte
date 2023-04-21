@@ -228,11 +228,11 @@ class StreamProcessor(object):
 
     def get_stream_source(self):
         if not self.parent:
-            return self.from_table.source_name + "." + self.from_table.table_name
+            return f"{self.from_table.source_name}.{self.from_table.table_name}"
         cur = self.parent
         while cur.parent:
             cur = cur.parent
-        return cur.from_table.source_name + "." + cur.from_table.table_name
+        return f"{cur.from_table.source_name}.{cur.from_table.table_name}"
 
     def process(self) -> List["StreamProcessor"]:
         """
@@ -322,10 +322,11 @@ class StreamProcessor(object):
          - the first value is the normalized "raw" column name
          - the second value is the normalized quoted column name to be used in jinja context
         """
-        fields = []
-        for field in self.properties.keys():
-            if not is_airbyte_column(field):
-                fields.append(field)
+        fields = [
+            field
+            for field in self.properties.keys()
+            if not is_airbyte_column(field)
+        ]
         result = {}
         field_names = set()
         for field in fields:
@@ -410,7 +411,7 @@ where 1 = 1
 {{ unnesting_where }}
 """
         )
-        sql = template.render(
+        return template.render(
             col_ab_id=self.get_ab_id(),
             col_emitted_at=self.get_emitted_at(),
             col_normalized_at=self.get_normalized_at(),
@@ -423,7 +424,6 @@ where 1 = 1
             unnesting_where=self.unnesting_where(),
             sql_table_comment=self.sql_table_comment(),
         )
-        return sql
 
     def get_ab_id(self, in_jinja: bool = False):
         # this is also tied to dbt-project-template/macros/should_full_refresh.sql
@@ -488,7 +488,7 @@ from {{ from_table }}
 where 1 = 1
     """
         )
-        sql = template.render(
+        return template.render(
             col_ab_id=self.get_ab_id(),
             col_emitted_at=self.get_emitted_at(),
             col_normalized_at=self.get_normalized_at(),
@@ -497,7 +497,6 @@ where 1 = 1
             from_table=jinja_call(from_table),
             sql_table_comment=self.sql_table_comment(),
         )
-        return sql
 
     def cast_property_types(self, column_names: Dict[str, Tuple[str, str]]) -> List[str]:
         return [self.cast_property_type(field, column_names[field][0], column_names[field][1]) for field in column_names]
@@ -511,7 +510,6 @@ where 1 = 1
             return column_name
         elif is_object(definition["type"]):
             sql_type = jinja_call("type_json()")
-        # Treat simple types from narrower to wider scope type: boolean < integer < number < string
         elif is_boolean(definition["type"], definition):
             cast_operation = jinja_call(f"cast_to_boolean({jinja_column})")
             return f"{cast_operation} as {column_name}"
@@ -548,11 +546,11 @@ where 1 = 1
                 sql_type = jinja_call("type_timestamp_with_timezone()")
             return f"cast({replace_operation} as {sql_type}) as {column_name}"
         elif is_date(definition):
-            if (
-                self.destination_type.value == DestinationType.MYSQL.value
-                or self.destination_type.value == DestinationType.TIDB.value
-                or self.destination_type.value == DestinationType.DUCKDB.value
-            ):
+            if self.destination_type.value in [
+                DestinationType.MYSQL.value,
+                DestinationType.TIDB.value,
+                DestinationType.DUCKDB.value,
+            ]:
                 # MySQL does not support [cast] and [nullif] functions together
                 return self.generate_mysql_date_format_statement(column_name)
             replace_operation = jinja_call(f"empty_string_to_null({jinja_column})")
@@ -574,11 +572,11 @@ where 1 = 1
                 trimmed_column_name = f"trim(BOTH '\"' from {column_name})"
                 sql_type = f"'{sql_type}'"
                 return f"nullif(accurateCastOrNull({trimmed_column_name}, {sql_type}), 'null') as {column_name}"
-            if (
-                self.destination_type == DestinationType.MYSQL
-                or self.destination_type == DestinationType.TIDB
-                or self.destination_type == DestinationType.DUCKDB
-            ):
+            if self.destination_type in [
+                DestinationType.MYSQL,
+                DestinationType.TIDB,
+                DestinationType.DUCKDB,
+            ]:
                 return f'nullif(cast({column_name} as {sql_type}), "") as {column_name}'
             replace_operation = jinja_call(f"empty_string_to_null({jinja_column})")
             return f"cast({replace_operation} as {sql_type}) as {column_name}"
@@ -694,14 +692,13 @@ where 1 = 1
     """
         )
 
-        sql = template.render(
+        return template.render(
             parent_hash_id=self.parent_hash_id(in_jinja=True),
             fields=self.safe_cast_to_strings(column_names),
             hash_id=self.hash_id(),
             from_table=jinja_call(from_table),
             sql_table_comment=self.sql_table_comment(),
         )
-        return sql
 
     def safe_cast_to_strings(self, column_names: Dict[str, Tuple[str, str]]) -> List[str]:
 
@@ -780,7 +777,7 @@ where 1 = 1
         cdc_updated_order_pattern = ""
         cdc_cols = ""
         quoted_cdc_cols = ""
-        if "_ab_cdc_deleted_at" in column_names.keys():
+        if "_ab_cdc_deleted_at" in column_names:
             col_cdc_deleted_at = self.name_transformer.normalize_column_name("_ab_cdc_deleted_at")
             col_cdc_updated_at = self.name_transformer.normalize_column_name("_ab_cdc_updated_at")
             quoted_col_cdc_deleted_at = self.name_transformer.normalize_column_name("_ab_cdc_deleted_at", in_jinja=True)
@@ -797,7 +794,7 @@ where 1 = 1
             )
             quoted_cdc_cols = f", {quoted_col_cdc_deleted_at}, {quoted_col_cdc_updated_at}"
 
-        if "_ab_cdc_log_pos" in column_names.keys():
+        if "_ab_cdc_log_pos" in column_names:
             col_cdc_log_pos = self.name_transformer.normalize_column_name("_ab_cdc_log_pos")
             quoted_col_cdc_log_pos = self.name_transformer.normalize_column_name("_ab_cdc_log_pos", in_jinja=True)
             cdc_updated_order_pattern += f"\n            {col_cdc_log_pos} desc,"
@@ -879,7 +876,6 @@ input_data_with_active_row_num as (
             {{ col_emitted_at }} desc
       {{ lag_end }}) as {{ airbyte_end_at }}"""
             ).render(jinja_variables)
-            jinja_variables["scd_columns_sql"] = scd_columns_sql
         else:
             scd_columns_sql = Template(
                 """
@@ -896,8 +892,8 @@ input_data_with_active_row_num as (
             {{ col_emitted_at }} desc
       ) = 1{{ cdc_active_row }} then 1 else 0 end as {{ active_row }}"""
             ).render(jinja_variables)
-            jinja_variables["scd_columns_sql"] = scd_columns_sql
-        sql = Template(
+        jinja_variables["scd_columns_sql"] = scd_columns_sql
+        return Template(
             """
 -- depends_on: {{ from_table }}
 with
@@ -1008,13 +1004,12 @@ select
 from dedup_data where {{ airbyte_row_num }} = 1
 """
         ).render(jinja_variables)
-        return sql
 
     def get_cursor_field_property_name(self, column_names: Dict[str, Tuple[str, str]]) -> str:
         if not self.cursor_field:
-            if "_ab_cdc_updated_at" in column_names.keys():
+            if "_ab_cdc_updated_at" in column_names:
                 return "_ab_cdc_updated_at"
-            elif "_ab_cdc_log_pos" in column_names.keys():
+            elif "_ab_cdc_log_pos" in column_names:
                 return "_ab_cdc_log_pos"
             else:
                 return self.airbyte_emitted_at
@@ -1027,11 +1022,11 @@ from dedup_data where {{ airbyte_row_num }} = 1
         if not self.cursor_field:
             cursor = self.name_transformer.normalize_column_name(self.get_cursor_field_property_name(column_names), in_jinja)
         elif len(self.cursor_field) == 1:
-            if not is_airbyte_column(self.cursor_field[0]):
-                cursor = column_names[self.cursor_field[0]][0]
-            else:
-                # using an airbyte generated column
-                cursor = self.cursor_field[0]
+            cursor = (
+                self.cursor_field[0]
+                if is_airbyte_column(self.cursor_field[0])
+                else column_names[self.cursor_field[0]][0]
+            )
         else:
             raise ValueError(f"Unsupported nested cursor field {'.'.join(self.cursor_field)} for stream {self.stream_name}")
         return cursor
@@ -1054,24 +1049,23 @@ from dedup_data where {{ airbyte_row_num }} = 1
     def get_primary_key_from_path(self, column_names: Dict[str, Tuple[str, str]], path: List[str]) -> str:
         if path and len(path) == 1:
             field = path[0]
-            if not is_airbyte_column(field):
-                if "type" in self.properties[field]:
-                    property_type = self.properties[field]["type"]
-                else:
-                    property_type = "object"
-                if is_number(property_type) or is_object(property_type):
-                    # some destinations don't handle float columns (or complex types) as primary keys, turn them to string
-                    return f"cast({column_names[field][0]} as {jinja_call('dbt_utils.type_string()')})"
-                else:
-                    return column_names[field][0]
-            else:
+            if is_airbyte_column(field):
                 # using an airbyte generated column
                 return f"cast({field} as {jinja_call('dbt_utils.type_string()')})"
-        else:
-            if path:
-                raise ValueError(f"Unsupported nested path {'.'.join(path)} for stream {self.stream_name}")
+            property_type = (
+                self.properties[field]["type"]
+                if "type" in self.properties[field]
+                else "object"
+            )
+            if is_number(property_type) or is_object(property_type):
+                # some destinations don't handle float columns (or complex types) as primary keys, turn them to string
+                return f"cast({column_names[field][0]} as {jinja_call('dbt_utils.type_string()')})"
             else:
-                raise ValueError(f"No path specified for stream {self.stream_name}")
+                return column_names[field][0]
+        elif path:
+            raise ValueError(f"Unsupported nested path {'.'.join(path)} for stream {self.stream_name}")
+        else:
+            raise ValueError(f"No path specified for stream {self.stream_name}")
 
     def generate_final_model(self, from_table: str, column_names: Dict[str, Tuple[str, str]], unique_key: str = "") -> Any:
         """
@@ -1101,7 +1095,7 @@ from {{ from_table }}
 where 1 = 1
     """
         )
-        sql = template.render(
+        return template.render(
             col_ab_id=self.get_ab_id(),
             col_emitted_at=self.get_emitted_at(),
             col_normalized_at=self.get_normalized_at(),
@@ -1112,7 +1106,6 @@ where 1 = 1
             sql_table_comment=self.sql_table_comment(include_from_table=True),
             unique_key=unique_key,
         )
-        return sql
 
     @staticmethod
     def is_incremental_mode(destination_sync_mode: DestinationSyncMode) -> bool:
@@ -1125,8 +1118,10 @@ where 1 = 1
 {{ incremental_clause }}
     """
         )
-        sql = template.render(sql_query=sql_query, incremental_clause=self.get_incremental_clause("this"))
-        return sql
+        return template.render(
+            sql_query=sql_query,
+            incremental_clause=self.get_incremental_clause("this"),
+        )
 
     def get_incremental_clause(self, tablename: str) -> Any:
         return self.get_incremental_clause_for_column(tablename, self.get_emitted_at(in_jinja=True))
@@ -1150,15 +1145,15 @@ where 1 = 1
     ) -> str:
         # Explicit function so that we can have type hints to satisfy the linter
         def wrap_in_quotes(s: str) -> str:
-            return '"' + s + '"'
+            return f'"{s}"'
 
         schema = self.get_schema(is_intermediate)
         # MySQL table names need to be manually truncated, because it does not do it automatically
-        truncate_name = (
-            self.destination_type == DestinationType.MYSQL
-            or self.destination_type == DestinationType.TIDB
-            or self.destination_type == DestinationType.DUCKDB
-        )
+        truncate_name = self.destination_type in [
+            DestinationType.MYSQL,
+            DestinationType.TIDB,
+            DestinationType.DUCKDB,
+        ]
         table_name = self.tables_registry.get_table_name(schema, self.json_path, self.stream_name, suffix, truncate_name)
         file_name = self.tables_registry.get_file_name(schema, self.json_path, self.stream_name, suffix, truncate_name)
         file = f"{file_name}.sql"
@@ -1195,7 +1190,7 @@ where 1 = 1
                     # Bigquery doesn't like the "delete from project.schema.table where project.schema.table.column in" syntax;
                     # it requires "delete from project.schema.table table_alias where table_alias.column in"
                     delete_statement = "delete from {{ final_table_relation }} final_table"
-                    unique_key_reference = "final_table." + self.get_unique_key(in_jinja=False)
+                    unique_key_reference = f"final_table.{self.get_unique_key(in_jinja=False)}"
                     noop_delete_statement = "delete from {{ this }} where 1=0"
                 else:
                     delete_statement = "delete from {{ final_table_relation }}"
@@ -1282,7 +1277,7 @@ where 1 = 1
                 # incremental is handled in the SCD SQL already
                 sql = self.add_incremental_clause(sql)
         elif self.destination_sync_mode == DestinationSyncMode.overwrite:
-            if suffix == "" and not is_intermediate:
+            if not suffix and not is_intermediate:
                 # drop SCD table after creating the destination table
                 scd_table_name = self.tables_registry.get_table_name(schema, self.json_path, self.stream_name, "scd", truncate_name)
                 print(f"  Adding drop table hook for {scd_table_name} to {file_name}")
@@ -1327,17 +1322,15 @@ where 1 = 1
 
     def get_model_materialization_mode(self, is_intermediate: bool, column_count: int = 0) -> TableMaterializationType:
         if is_intermediate:
-            if column_count <= MAXIMUM_COLUMNS_TO_USE_EPHEMERAL:
-                return TableMaterializationType.CTE
-            else:
-                # dbt throws "maximum recursion depth exceeded" exception at runtime
-                # if ephemeral is used with large number of columns, use views instead
-                return TableMaterializationType.VIEW
+            return (
+                TableMaterializationType.CTE
+                if column_count <= MAXIMUM_COLUMNS_TO_USE_EPHEMERAL
+                else TableMaterializationType.VIEW
+            )
+        if self.is_incremental_mode(self.destination_sync_mode):
+            return TableMaterializationType.INCREMENTAL
         else:
-            if self.is_incremental_mode(self.destination_sync_mode):
-                return TableMaterializationType.INCREMENTAL
-            else:
-                return TableMaterializationType.TABLE
+            return TableMaterializationType.TABLE
 
     def get_model_partition_config(self, partition_by: PartitionScheme, unique_key: str) -> Dict:
         """
@@ -1362,9 +1355,7 @@ where 1 = 1
                 config["partition_by"] = (
                     '{"field": "_airbyte_active_row", "data_type": "int64", ' '"range": {"start": 0, "end": 1, "interval": 1}}'
                 )
-            elif partition_by == PartitionScheme.NOTHING:
-                pass
-            else:
+            elif partition_by != PartitionScheme.NOTHING:
                 config["partition_by"] = '{"field": "' + self.airbyte_emitted_at + '", "data_type": "timestamp", "granularity": "day"}'
         elif self.destination_type == DestinationType.POSTGRES:
             # see https://docs.getdbt.com/reference/resource-configs/postgres-configs
@@ -1386,9 +1377,7 @@ where 1 = 1
                 config["sort"] = f'["_airbyte_active_row", "{self.airbyte_unique_key}_scd", "{self.airbyte_emitted_at}"]'
             elif partition_by == PartitionScheme.UNIQUE_KEY:
                 config["sort"] = f'["{self.airbyte_unique_key}", "{self.airbyte_emitted_at}"]'
-            elif partition_by == PartitionScheme.NOTHING:
-                pass
-            else:
+            elif partition_by != PartitionScheme.NOTHING:
                 config["sort"] = f'"{self.airbyte_emitted_at}"'
         elif self.destination_type == DestinationType.SNOWFLAKE:
             # see https://docs.getdbt.com/reference/resource-configs/snowflake-configs
@@ -1398,9 +1387,7 @@ where 1 = 1
                 ] = f'["_AIRBYTE_ACTIVE_ROW", "{self.airbyte_unique_key.upper()}_SCD", "{self.airbyte_emitted_at.upper()}"]'
             elif partition_by == PartitionScheme.UNIQUE_KEY:
                 config["cluster_by"] = f'["{self.airbyte_unique_key.upper()}", "{self.airbyte_emitted_at.upper()}"]'
-            elif partition_by == PartitionScheme.NOTHING:
-                pass
-            else:
+            elif partition_by != PartitionScheme.NOTHING:
                 config["cluster_by"] = f'["{self.airbyte_emitted_at.upper()}"]'
         if unique_key:
             config["unique_key"] = f'"{unique_key}"'
@@ -1410,20 +1397,13 @@ where 1 = 1
         return config
 
     def get_model_tags(self, is_intermediate: bool) -> str:
-        tags = ""
-        if self.parent:
-            tags += "nested"
-        else:
-            tags += "top-level"
+        tags = "" + ("nested" if self.parent else "top-level")
         if is_intermediate:
             tags += "-intermediate"
         return f'"{tags}"'
 
     def get_schema(self, is_intermediate: bool) -> str:
-        if is_intermediate:
-            return self.raw_schema
-        else:
-            return self.schema
+        return self.raw_schema if is_intermediate else self.schema
 
     def current_json_path(self) -> str:
         return "/".join(self.json_path)
@@ -1446,19 +1426,20 @@ where 1 = 1
 
     def hash_id(self, in_jinja: bool = False) -> str:
         hash_id_col = f"_airbyte_{self.normalized_stream_name()}_hashid"
-        if self.parent:
-            if self.normalized_stream_name().lower() == self.parent.stream_name.lower():
-                level = len(self.json_path)
-                hash_id_col = f"_airbyte_{self.normalized_stream_name()}_{level}_hashid"
+        if (
+            self.parent
+            and self.normalized_stream_name().lower()
+            == self.parent.stream_name.lower()
+        ):
+            level = len(self.json_path)
+            hash_id_col = f"_airbyte_{self.normalized_stream_name()}_{level}_hashid"
 
         return self.name_transformer.normalize_column_name(hash_id_col, in_jinja)
 
     # Nested Streams
 
     def parent_hash_id(self, in_jinja: bool = False) -> str:
-        if self.parent:
-            return self.parent.hash_id(in_jinja)
-        return ""
+        return self.parent.hash_id(in_jinja) if self.parent else ""
 
     def unnesting_before_query(self, from_table: str) -> str:
         if self.parent and self.is_nested_array:
@@ -1468,11 +1449,10 @@ where 1 = 1
         return ""
 
     def unnesting_from(self) -> str:
-        if self.parent:
-            if self.is_nested_array:
-                parent_stream_name = f"'{self.parent.normalized_stream_name()}'"
-                quoted_field = self.name_transformer.normalize_column_name(self.stream_name, in_jinja=True)
-                return jinja_call(f"cross_join_unnest({parent_stream_name}, {quoted_field})")
+        if self.parent and self.is_nested_array:
+            parent_stream_name = f"'{self.parent.normalized_stream_name()}'"
+            quoted_field = self.name_transformer.normalize_column_name(self.stream_name, in_jinja=True)
+            return jinja_call(f"cross_join_unnest({parent_stream_name}, {quoted_field})")
         return ""
 
     def unnesting_where(self) -> str:

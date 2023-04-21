@@ -293,7 +293,7 @@ class SponsoredProductsReportStream(ReportStream):
             reportTypeId = "spPurchasedProduct"
             group_by = ["asin"]
 
-        elif record_type == "keywords" or record_type == "targets":
+        elif record_type in {"keywords", "targets"}:
             group_by = ["targeting"]
             reportTypeId = "spTargeting"
             filters = [{"field": "keywordType", "values": ["TARGETING_EXPRESSION", "TARGETING_EXPRESSION_PREDEFINED"]}]
@@ -301,7 +301,7 @@ class SponsoredProductsReportStream(ReportStream):
             if record_type == "keywords":
                 filters = [{"field": "keywordType", "values": ["BROAD", "PHRASE", "EXACT"]}]
 
-        body = {
+        return {
             "name": f"{record_type} report {report_date}",
             "startDate": report_date,
             "endDate": report_date,
@@ -315,5 +315,3 @@ class SponsoredProductsReportStream(ReportStream):
                 "format": "GZIP_JSON",
             },
         }
-
-        return body

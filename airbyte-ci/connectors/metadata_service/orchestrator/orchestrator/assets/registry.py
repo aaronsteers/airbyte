@@ -48,7 +48,7 @@ def apply_overrides_from_registry(metadata_data: dict, override_registry_key: st
     # remove any None values from the override registry
     override_registry = {k: v for k, v in override_registry.items() if v is not None}
 
-    metadata_data.update(override_registry)
+    metadata_data |= override_registry
 
     return metadata_data
 
@@ -72,15 +72,11 @@ def metadata_to_registry_entry(metadata_definition: dict, connector_type: str, o
 
     del overrode_metadata_data["connectorType"]
 
-    # rename field connectorSubtype to sourceType
-    connection_type = overrode_metadata_data.get("connectorSubtype")
-    if connection_type:
+    if connection_type := overrode_metadata_data.get("connectorSubtype"):
         overrode_metadata_data["sourceType"] = overrode_metadata_data["connectorSubtype"]
         del overrode_metadata_data["connectorSubtype"]
 
-    # rename supportUrl to documentationUrl
-    support_url = overrode_metadata_data.get("supportUrl")
-    if support_url:
+    if support_url := overrode_metadata_data.get("supportUrl"):
         overrode_metadata_data["documentationUrl"] = overrode_metadata_data["supportUrl"]
         del overrode_metadata_data["supportUrl"]
 
@@ -175,8 +171,9 @@ def persist_registry_to_json(
     """
     registry_file_name = f"{registry_name}_registry"
     registry_json = registry.json()
-    file_handle = registry_directory_manager.write_data(registry_json.encode("utf-8"), ext="json", key=registry_file_name)
-    return file_handle
+    return registry_directory_manager.write_data(
+        registry_json.encode("utf-8"), ext="json", key=registry_file_name
+    )
 
 def generate_and_persist_registry(
     metadata_definitions: List[MetadataDefinition],
@@ -316,13 +313,11 @@ def legacy_oss_registry(legacy_oss_registry_dict: dict) -> ConnectorRegistryV0:
 def legacy_cloud_registry_dict(context: OpExecutionContext) -> dict:
     oss_registry_file = context.resources.legacy_cloud_registry_gcs_blob
     json_string = oss_registry_file.download_as_string().decode("utf-8")
-    oss_registry_dict = json.loads(json_string)
-    return oss_registry_dict
+    return json.loads(json_string)
 
 
 @asset(required_resource_keys={"legacy_oss_registry_gcs_blob"}, group_name=GROUP_NAME)
 def legacy_oss_registry_dict(context: OpExecutionContext) -> dict:
     oss_registry_file = context.resources.legacy_oss_registry_gcs_blob
     json_string = oss_registry_file.download_as_string().decode("utf-8")
-    oss_registry_dict = json.loads(json_string)
-    return oss_registry_dict
+    return json.loads(json_string)

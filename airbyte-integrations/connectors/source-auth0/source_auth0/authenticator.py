@@ -17,12 +17,13 @@ class Auth0Oauth2Authenticator(Oauth2Authenticator):
         self.audience = audience.rstrip("/") + "/"
 
     def build_refresh_request_body(self) -> Mapping[str, Any]:
-        if not self.get_refresh_token():
-            return {
+        return (
+            super().build_refresh_request_body()
+            if self.get_refresh_token()
+            else {
                 "grant_type": "client_credentials",
                 "client_id": self.get_client_id(),
                 "client_secret": self.get_client_secret(),
                 "audience": self.audience,
             }
-        else:
-            return super().build_refresh_request_body()
+        )

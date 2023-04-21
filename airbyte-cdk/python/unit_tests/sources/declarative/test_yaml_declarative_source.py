@@ -38,8 +38,7 @@ class MockYamlDeclarativeSource(YamlDeclarativeSource):
         """
         with open(path_to_yaml_file, "r") as f:
             config_content = f.read()
-            parsed_config = YamlDeclarativeSource._parse(config_content)
-            return parsed_config
+            return YamlDeclarativeSource._parse(config_content)
 
 
 class TestYamlDeclarativeSource:

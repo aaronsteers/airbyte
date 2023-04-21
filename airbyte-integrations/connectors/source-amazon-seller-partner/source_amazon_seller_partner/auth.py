@@ -58,7 +58,7 @@ class AWSSignature(AuthBase):
             split_query_parameters = list(map(lambda param: param.split("="), url_parsed.query.split("&")))
             ordered_query_parameters = sorted(split_query_parameters, key=lambda param: (param[0], param[1]))
         else:
-            ordered_query_parameters = list()
+            ordered_query_parameters = []
 
         canonical_querystring = "&".join(map(lambda param: "=".join(param), ordered_query_parameters))
 
@@ -70,13 +70,10 @@ class AWSSignature(AuthBase):
         canonical_headers = "".join(map(lambda h: ":".join(h) + "\n", ordered_headers.items()))
         signed_headers = ";".join(ordered_headers.keys())
 
-        if prepared_request.method == "GET":
-            payload_hash = hashlib.sha256("".encode("utf-8")).hexdigest()
+        if prepared_request.method != "GET" and prepared_request.body:
+            payload_hash = hashlib.sha256(prepared_request.body.encode("utf-8")).hexdigest()
         else:
-            if prepared_request.body:
-                payload_hash = hashlib.sha256(prepared_request.body.encode("utf-8")).hexdigest()
-            else:
-                payload_hash = hashlib.sha256("".encode("utf-8")).hexdigest()
+            payload_hash = hashlib.sha256("".encode("utf-8")).hexdigest()
 
         canonical_request = "\n".join(
             [prepared_request.method, uri, canonical_querystring, canonical_headers, signed_headers, payload_hash]
@@ -87,22 +84,19 @@ class AWSSignature(AuthBase):
             ["AWS4-HMAC-SHA256", amz_date, credential_scope, hashlib.sha256(canonical_request.encode("utf-8")).hexdigest()]
         )
 
-        datestamp_signed = self._sign_msg(("AWS4" + self.aws_secret_access_key).encode("utf-8"), datestamp)
+        datestamp_signed = self._sign_msg(
+            f"AWS4{self.aws_secret_access_key}".encode("utf-8"), datestamp
+        )
         region_signed = self._sign_msg(datestamp_signed, self.region)
         service_signed = self._sign_msg(region_signed, self.service)
         aws4_request_signed = self._sign_msg(service_signed, "aws4_request")
         signature = hmac.new(aws4_request_signed, string_to_sign.encode("utf-8"), hashlib.sha256).hexdigest()
 
-        authorization_header = "AWS4-HMAC-SHA256 Credential={}/{}, SignedHeaders={}, Signature={}".format(
-            self.aws_access_key_id, credential_scope, signed_headers, signature
-        )
-        return authorization_header
+        return f"AWS4-HMAC-SHA256 Credential={self.aws_access_key_id}/{credential_scope}, SignedHeaders={signed_headers}, Signature={signature}"
 
     def __call__(self, prepared_request: requests.PreparedRequest) -> requests.PreparedRequest:
-        prepared_request.headers.update(
-            {
-                "authorization": self._get_authorization_header(prepared_request),
-                "x-amz-security-token": self.aws_session_token,
-            }
-        )
+        prepared_request.headers |= {
+            "authorization": self._get_authorization_header(prepared_request),
+            "x-amz-security-token": self.aws_session_token,
+        }
         return prepared_request

@@ -76,10 +76,7 @@ class AwsCloudtrailStream(Stream, ABC):
         pass
 
     def is_read_limit_reached(self) -> bool:
-        if self.records_left <= 0:
-            # limit of fetched records is reached
-            return True
-        return False
+        return self.records_left <= 0
 
     def read_records(
         self,

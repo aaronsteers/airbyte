@@ -33,12 +33,19 @@ def _cast_pandas_column(df: pd.DataFrame, col: str, current_type: str, desired_t
         df = _cast_pandas_column(df=df, col=col, current_type=current_type, desired_type="string")
         # Then cast to decimal
         df[col] = df[col].apply(lambda x: Decimal(str(x)) if str(x) not in null_values else None)
-    elif desired_type.lower() in ["float64", "int64"]:
+    elif desired_type.lower() in {"float64", "int64"}:
         df[col] = df[col].fillna("")
         df[col] = pd.to_numeric(df[col])
-    elif desired_type in ["boolean", "bool"]:
+    elif desired_type in {"boolean", "bool"}:
         if df[col].dtype in ["string", "O"]:
-            df[col] = df[col].fillna("false").apply(lambda x: str(x).lower() in ["true", "1", "1.0", "t", "y", "yes"])
+            df[col] = (
+                df[col]
+                .fillna("false")
+                .apply(
+                    lambda x: str(x).lower()
+                    in {"true", "1", "1.0", "t", "y", "yes"}
+                )
+            )
 
         df[col] = df[col].astype(bool)
     else:

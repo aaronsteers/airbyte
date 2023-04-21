@@ -33,9 +33,7 @@ def parse_config(config: json, logger: Optional[AirbyteLogger] = None) -> Dict[s
         "api_endpoint": config.get("host", DEFAULT_API_URL),
         "account_name": config.get("account"),
     }
-    # engine can be a name or a full URL of a cluster
-    engine = config.get("engine")
-    if engine:
+    if engine := config.get("engine"):
         if "." in engine:
             connection_args["engine_url"] = engine
         else:

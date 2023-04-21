@@ -76,12 +76,12 @@ TASK_COMMANDS: Dict[str, List[str]] = {
 def get_connectors_names() -> Set[str]:
     cur_dir = os.path.abspath(os.curdir)
     os.chdir(CONNECTORS_DIR)
-    names = set()
-    for name in glob("source-*"):
-        if os.path.exists(os.path.join(name, "setup.py")):
-            if not name.endswith("-singer"):  # There are some problems with those. The optimal way is to wait until it's replaced by CDK.
-                names.add(name.split("source-", 1)[1].rstrip())
-
+    names = {
+        name.split("source-", 1)[1].rstrip()
+        for name in glob("source-*")
+        if os.path.exists(os.path.join(name, "setup.py"))
+        and not name.endswith("-singer")
+    }
     os.chdir(cur_dir)
     return names
 
@@ -124,9 +124,10 @@ def _run_task(
     virtualenv.cli_run([venv_name])
     activator = os.path.join(os.path.abspath(venv_name), "bin", "activate")
 
-    commands = []
-
-    commands.extend([cmd.format(source_path=source_path, venv=venv_name, **kwargs) for cmd in task_commands[task_name]])
+    commands = [
+        cmd.format(source_path=source_path, venv=venv_name, **kwargs)
+        for cmd in task_commands[task_name]
+    ]
 
     exit_code: int = 0
 

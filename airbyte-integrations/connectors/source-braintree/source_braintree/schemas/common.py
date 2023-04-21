@@ -29,7 +29,7 @@ class AllOptional(pydantic.main.ModelMetaclass):
     It would make code more clear and eliminate a lot of manual work.
     """
 
-    def __new__(self, name, bases, namespaces, **kwargs):
+    def __new__(cls, name, bases, namespaces, **kwargs):
         """
         Iterate through fields and wrap then with typing.Optional type.
         """
@@ -40,7 +40,7 @@ class AllOptional(pydantic.main.ModelMetaclass):
             if not field.startswith("__"):
                 annotations[field] = Optional[annotations[field]]
         namespaces["__annotations__"] = annotations
-        return super().__new__(self, name, bases, namespaces, **kwargs)
+        return super().__new__(cls, name, bases, namespaces, **kwargs)
 
 
 class CatalogModel(BaseModel, metaclass=AllOptional):

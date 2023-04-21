@@ -49,20 +49,21 @@ def pytest_generate_tests(metafunc):
     It parametrizes, skips or fails a discovered test according the test configuration.
     """
 
-    if "inputs" in metafunc.fixturenames:
-        test_config_key = metafunc.cls.config_key()
-        global_config = load_config(metafunc.config.getoption("--acceptance-test-config"))
-        test_configuration: GenericTestConfig = getattr(global_config.acceptance_tests, test_config_key, None)
-        test_action, reason = parametrize_skip_or_fail(
-            metafunc.cls, metafunc.function, global_config.test_strictness_level, test_configuration
-        )
+    if "inputs" not in metafunc.fixturenames:
+        return
+    test_config_key = metafunc.cls.config_key()
+    global_config = load_config(metafunc.config.getoption("--acceptance-test-config"))
+    test_configuration: GenericTestConfig = getattr(global_config.acceptance_tests, test_config_key, None)
+    test_action, reason = parametrize_skip_or_fail(
+        metafunc.cls, metafunc.function, global_config.test_strictness_level, test_configuration
+    )
 
-        if test_action == TestAction.PARAMETRIZE:
-            metafunc.parametrize("inputs", test_configuration.tests)
-        if test_action == TestAction.SKIP:
-            pytest.skip(reason)
-        if test_action == TestAction.FAIL:
-            pytest.fail(reason)
+    if test_action == TestAction.PARAMETRIZE:
+        metafunc.parametrize("inputs", test_configuration.tests)
+    if test_action == TestAction.SKIP:
+        pytest.skip(reason)
+    if test_action == TestAction.FAIL:
+        pytest.fail(reason)
 
 
 def parametrize_skip_or_fail(
@@ -92,21 +93,21 @@ def parametrize_skip_or_fail(
     test_name = f"{TestClass.__name__}.{test_function.__name__}"
     test_mode_can_skip_this_test = global_test_mode not in TestClass.MANDATORY_FOR_TEST_STRICTNESS_LEVELS
     skipping_reason_prefix = f"Skipping {test_name}: "
-    default_skipping_reason = skipping_reason_prefix + "not found in the config."
+    default_skipping_reason = f"{skipping_reason_prefix}not found in the config."
 
     if test_configuration is None:
-        if test_mode_can_skip_this_test:
-            return TestAction.SKIP, default_skipping_reason
-        else:
-            return (
+        return (
+            (TestAction.SKIP, default_skipping_reason)
+            if test_mode_can_skip_this_test
+            else (
                 TestAction.FAIL,
                 f"{test_name} failed: it was not configured but must be according to the current {global_test_mode} test strictness level.",
             )
+        )
+    if test_configuration.tests is not None:
+        return TestAction.PARAMETRIZE, f"Parametrize {test_name}: tests are configured."
     else:
-        if test_configuration.tests is not None:
-            return TestAction.PARAMETRIZE, f"Parametrize {test_name}: tests are configured."
-        else:
-            return TestAction.SKIP, skipping_reason_prefix + test_configuration.bypass_reason
+        return TestAction.SKIP, skipping_reason_prefix + test_configuration.bypass_reason
 
 
 def pytest_collection_modifyitems(config, items):

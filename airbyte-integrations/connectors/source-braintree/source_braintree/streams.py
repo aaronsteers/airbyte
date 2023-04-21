@@ -70,17 +70,22 @@ class BraintreeStream(Stream, ABC):
     @staticmethod
     def get_json_from_resource(resource_obj: Union[AttributeGetter, List[AttributeGetter]]):
         if isinstance(resource_obj, list):
-            return [obj if not isinstance(obj, AttributeGetter) else BraintreeStream.get_json_from_resource(obj) for obj in resource_obj]
+            return [
+                BraintreeStream.get_json_from_resource(obj)
+                if isinstance(obj, AttributeGetter)
+                else obj
+                for obj in resource_obj
+            ]
         obj_dict = resource_obj.__dict__
-        result = dict()
-        for attr in obj_dict:
-            if not attr.startswith("_"):
-                result[attr] = (
-                    BraintreeStream.get_json_from_resource(obj_dict[attr])
-                    if isinstance(obj_dict[attr], (AttributeGetter, list))
-                    else obj_dict[attr]
-                )
-        return result
+        return {
+            attr: (
+                BraintreeStream.get_json_from_resource(obj_dict[attr])
+                if isinstance(obj_dict[attr], (AttributeGetter, list))
+                else obj_dict[attr]
+            )
+            for attr in obj_dict
+            if not attr.startswith("_")
+        }
 
     @backoff.on_exception(
         backoff.expo,

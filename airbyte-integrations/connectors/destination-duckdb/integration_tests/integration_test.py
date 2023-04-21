@@ -55,8 +55,10 @@ def test_table_name() -> str:
 
 @pytest.fixture
 def table_schema() -> str:
-    schema = {"type": "object", "properties": {"column1": {"type": ["null", "string"]}}}
-    return schema
+    return {
+        "type": "object",
+        "properties": {"column1": {"type": ["null", "string"]}},
+    }
 
 
 @pytest.fixture

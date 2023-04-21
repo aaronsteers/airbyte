@@ -23,7 +23,7 @@ from pytest import fixture
 
 @fixture(params=["my_engine", "my_engine.api.firebolt.io"])
 def config(request: Any) -> Dict[str, str]:
-    args = {
+    return {
         "database": "my_database",
         "username": "my_username",
         "password": "my_password",
@@ -32,12 +32,11 @@ def config(request: Any) -> Dict[str, str]:
             "method": "SQL",
         },
     }
-    return args
 
 
 @fixture
 def config_external_table() -> Dict[str, str]:
-    args = {
+    return {
         "database": "my_database",
         "username": "my_username",
         "password": "my_password",
@@ -50,17 +49,15 @@ def config_external_table() -> Dict[str, str]:
             "aws_key_secret": "aws_secret",
         },
     }
-    return args
 
 
 @fixture
 def config_no_engine() -> Dict[str, str]:
-    args = {
+    return {
         "database": "my_database",
         "username": "my_username",
         "password": "my_password",
     }
-    return args
 
 
 @fixture
@@ -146,7 +143,9 @@ def test_connection(config: Dict[str, str], config_no_engine: Dict[str, str], lo
     establish_connection(config, logger)
     logger.reset_mock()
     establish_connection(config_no_engine, logger)
-    assert any(["default engine" in msg.args[0] for msg in logger.info.mock_calls]), "No message on using default engine"
+    assert any(
+        "default engine" in msg.args[0] for msg in logger.info.mock_calls
+    ), "No message on using default engine"
     # Check no log object
     establish_connection(config)
 

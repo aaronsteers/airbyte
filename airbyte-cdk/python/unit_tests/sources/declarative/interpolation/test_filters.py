@@ -16,7 +16,7 @@ def test_hash_md5_no_salt():
 
     # compute expected hash calling hashlib directly
     hash_obj = hashlib.md5()
-    hash_obj.update(str(input_string).encode("utf-8"))
+    hash_obj.update(input_string.encode("utf-8"))
     hashlib_computed_hash = hash_obj.hexdigest()
 
     assert filter_hash == hashlib_computed_hash

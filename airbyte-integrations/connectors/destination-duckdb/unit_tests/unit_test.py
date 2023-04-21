@@ -11,5 +11,3 @@ def test_read_invalid_path():
     invalid_input = "/test.duckdb"
     with pytest.raises(ValueError):
         _ = DestinationDuckdb._get_destination_path(invalid_input)
-
-    assert True

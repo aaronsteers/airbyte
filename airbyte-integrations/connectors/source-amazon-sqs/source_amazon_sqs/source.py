@@ -43,25 +43,29 @@ class SourceAmazonSqs(Source):
 
     def check(self, logger: AirbyteLogger, config: json) -> AirbyteConnectionStatus:
         try:
-            if "max_batch_size" in config:
-                # Max batch size must be between 1 and 10
-                if config["max_batch_size"] > 10 or config["max_batch_size"] < 1:
-                    raise Exception("max_batch_size must be between 1 and 10")
-            if "max_wait_time" in config:
-                # Max wait time must be between 1 and 20
-                if config["max_wait_time"] > 20 or config["max_wait_time"] < 1:
-                    raise Exception("max_wait_time must be between 1 and 20")
+            if "max_batch_size" in config and (
+                config["max_batch_size"] > 10 or config["max_batch_size"] < 1
+            ):
+                raise Exception("max_batch_size must be between 1 and 10")
+            if "max_wait_time" in config and (
+                config["max_wait_time"] > 20 or config["max_wait_time"] < 1
+            ):
+                raise Exception("max_wait_time must be between 1 and 20")
 
             # Required propeties
             queue_url = config["queue_url"]
-            logger.debug("Amazon SQS Source Config Check - queue_url: " + queue_url)
+            logger.debug(f"Amazon SQS Source Config Check - queue_url: {queue_url}")
             queue_region = config["region"]
-            logger.debug("Amazon SQS Source Config Check - region: " + queue_region)
+            logger.debug(f"Amazon SQS Source Config Check - region: {queue_region}")
             # Senstive Properties
             access_key = config["access_key"]
-            logger.debug("Amazon SQS Source Config Check - access_key (ends with): " + access_key[-1])
+            logger.debug(
+                f"Amazon SQS Source Config Check - access_key (ends with): {access_key[-1]}"
+            )
             secret_key = config["secret_key"]
-            logger.debug("Amazon SQS Source Config Check - secret_key (ends with): " + secret_key[-1])
+            logger.debug(
+                f"Amazon SQS Source Config Check - secret_key (ends with): {secret_key[-1]}"
+            )
 
             logger.debug("Amazon SQS Source Config Check - Starting connection test ---")
             session = boto3.Session(aws_access_key_id=access_key, aws_secret_access_key=secret_key, region_name=queue_region)
@@ -80,25 +84,29 @@ class SourceAmazonSqs(Source):
             )
 
     def discover(self, logger: AirbyteLogger, config: json) -> AirbyteCatalog:
-        streams = []
-
         # Get the queue name by getting substring after last /
         stream_name = self.parse_queue_name(config["queue_url"])
-        logger.debug("Amazon SQS Source Stream Discovery - stream is: " + stream_name)
+        logger.debug(f"Amazon SQS Source Stream Discovery - stream is: {stream_name}")
 
         json_schema = {
             "$schema": "http://json-schema.org/draft-07/schema#",
             "type": "object",
             "properties": {"id": {"type": "string"}, "body": {"type": "string"}, "attributes": {"type": ["object", "null"]}},
         }
-        streams.append(AirbyteStream(name=stream_name, json_schema=json_schema, supported_sync_modes=["full_refresh"]))
+        streams = [
+            AirbyteStream(
+                name=stream_name,
+                json_schema=json_schema,
+                supported_sync_modes=["full_refresh"],
+            )
+        ]
         return AirbyteCatalog(streams=streams)
 
     def read(
         self, logger: AirbyteLogger, config: json, catalog: ConfiguredAirbyteCatalog, state: Dict[str, any]
     ) -> Generator[AirbyteMessage, None, None]:
         stream_name = self.parse_queue_name(config["queue_url"])
-        logger.debug("Amazon SQS Source Read - stream is: " + stream_name)
+        logger.debug(f"Amazon SQS Source Read - stream is: {stream_name}")
 
         # Required propeties
         queue_url = config["queue_url"]
@@ -138,11 +146,15 @@ class SourceAmazonSqs(Source):
                     break
 
                 for msg in messages:
-                    logger.debug("Amazon SQS Source Read - Message recieved: " + msg.message_id)
+                    logger.debug(f"Amazon SQS Source Read - Message recieved: {msg.message_id}")
                     if visibility_timeout:
-                        logger.debug("Amazon SQS Source Read - Setting message visibility timeout: " + msg.message_id)
+                        logger.debug(
+                            f"Amazon SQS Source Read - Setting message visibility timeout: {msg.message_id}"
+                        )
                         self.change_message_visibility(msg, visibility_timeout)
-                        logger.debug("Amazon SQS Source Read - Message visibility timeout set: " + msg.message_id)
+                        logger.debug(
+                            f"Amazon SQS Source Read - Message visibility timeout set: {msg.message_id}"
+                        )
 
                     data = {
                         "id": msg.message_id,
@@ -156,10 +168,10 @@ class SourceAmazonSqs(Source):
                         record=AirbyteRecordMessage(stream=stream_name, data=data, emitted_at=int(datetime.now().timestamp()) * 1000),
                     )
                     if delete_messages:
-                        logger.debug("Amazon SQS Source Read - Deleting message: " + msg.message_id)
+                        logger.debug(f"Amazon SQS Source Read - Deleting message: {msg.message_id}")
                         self.delete_message(msg)
-                        logger.debug("Amazon SQS Source Read - Message deleted: " + msg.message_id)
-                        # TODO: Delete messages in batches to reduce amount of requests?
+                        logger.debug(f"Amazon SQS Source Read - Message deleted: {msg.message_id}")
+                                        # TODO: Delete messages in batches to reduce amount of requests?
 
             except ClientError as error:
-                raise Exception("Error in AWS Client: " + str(error))
+                raise Exception(f"Error in AWS Client: {str(error)}")

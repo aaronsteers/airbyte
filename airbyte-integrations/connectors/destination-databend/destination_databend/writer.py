@@ -130,5 +130,4 @@ class DatabendSQLWriter(DatabendWriter):
 
 def create_databend_wirter(client: DatabendClient, logger: AirbyteLogger) -> DatabendWriter:
     logger.info("Using the SQL writing strategy")
-    writer = DatabendSQLWriter(client)
-    return writer
+    return DatabendSQLWriter(client)

@@ -33,7 +33,7 @@ def config() -> Dict[str, str]:
 @fixture(scope="module")
 def test_table_name() -> str:
     letters = string.ascii_lowercase
-    rnd_string = "".join(random.choice(letters) for i in range(10))
+    rnd_string = "".join(random.choice(letters) for _ in range(10))
     return f"airbyte_integration_{rnd_string}"
 
 
@@ -48,13 +48,12 @@ def cleanup(config: Dict[str, str], test_table_name: str):
 
 @fixture
 def table_schema() -> str:
-    schema = {
+    return {
         "type": "object",
         "properties": {
             "column1": {"type": ["null", "string"]},
         },
     }
-    return schema
 
 
 @fixture
@@ -132,7 +131,7 @@ def test_write(
     destination = DestinationFirebolt()
     generator = destination.write(config, configured_catalogue, [airbyte_message1, airbyte_message2])
     result = list(generator)
-    assert len(result) == 0
+    assert not result
     with establish_connection(config, MagicMock()) as connection:
         with connection.cursor() as cursor:
             cursor.execute(

@@ -22,14 +22,13 @@ class SourceDV360(AbstractSource):
         Get the credentials from the config file and returns them as a Credentials object
         """
         cred_json = config.get("credentials")
-        creds = Credentials(
+        return Credentials(
             token=cred_json.get("access_token"),
             refresh_token=cred_json.get("refresh_token"),
             token_uri=cred_json.get("token_uri"),
             client_id=cred_json.get("client_id"),
             client_secret=cred_json.get("client_secret"),
         )
-        return creds
 
     def check_connection(self, logger: AirbyteLogger, config: Mapping[str, Any]) -> Tuple[bool, any]:
         """
@@ -45,8 +44,7 @@ class SourceDV360(AbstractSource):
         """
         try:
             dbm_service = build("doubleclickbidmanager", "v1.1", credentials=self.get_credentials(config))
-            request = dbm_service.queries().listqueries().execute()
-            if request:
+            if request := dbm_service.queries().listqueries().execute():
                 return True, None
         except Exception as err:
             return False, f"Unable to connect to Google Ads API with the provided credentials - {repr(err)}"
@@ -65,14 +63,13 @@ class SourceDV360(AbstractSource):
             filters=config.get("filters"),
         )
 
-        streams = [
+        return [
             Reach(**args),
             Standard(**args),
             AudienceComposition(**args),
             Floodlight(**args),
             UniqueReachAudience(**args),
         ]
-        return streams
 
     def read(
         self, logger: AirbyteLogger, config: json, catalog: ConfiguredAirbyteCatalog, state: MutableMapping[str, Any]
@@ -137,4 +134,4 @@ class SourceDV360(AbstractSource):
 
                     logger.info(f"Finished syncing {stream_name} stream")
             except Exception as e:
-                logger.error("Failed to read the data: " + repr(e))
+                logger.error(f"Failed to read the data: {repr(e)}")

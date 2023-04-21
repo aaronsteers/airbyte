@@ -62,9 +62,8 @@ class SubstreamPartitionRouter(StreamSlicer):
         cursor = {}
         for parent_stream_config in self.parent_stream_configs:
             partition_field = parent_stream_config.partition_field.eval(self.config)
-            slice_value = stream_slice.get(partition_field)
-            if slice_value:
-                cursor.update({partition_field: slice_value})
+            if slice_value := stream_slice.get(partition_field):
+                cursor[partition_field] = slice_value
         self._cursor = cursor
 
     def get_request_params(
@@ -109,9 +108,8 @@ class SubstreamPartitionRouter(StreamSlicer):
             for parent_config in self.parent_stream_configs:
                 if parent_config.request_option and parent_config.request_option.inject_into == option_type:
                     key = parent_config.partition_field.eval(self.config)
-                    value = stream_slice.get(key)
-                    if value:
-                        params.update({parent_config.request_option.field_name: value})
+                    if value := stream_slice.get(key):
+                        params[parent_config.request_option.field_name] = value
         return params
 
     def get_stream_state(self) -> StreamState:
@@ -143,9 +141,7 @@ class SubstreamPartitionRouter(StreamSlicer):
                     empty_parent_slice = True
                     parent_slice = parent_stream_slice
 
-                    for parent_record in parent_stream.read_records(
-                        sync_mode=SyncMode.full_refresh, cursor_field=None, stream_slice=parent_stream_slice, stream_state=None
-                    ):
+                    for parent_record in parent_stream.read_records(sync_mode=SyncMode.full_refresh, cursor_field=None, stream_slice=parent_slice, stream_state=None):
                         # Skip non-records (eg AirbyteLogMessage)
                         if isinstance(parent_record, AirbyteMessage):
                             if parent_record.type == Type.RECORD:

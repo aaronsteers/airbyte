@@ -108,10 +108,10 @@ class Calls(IncrementalBabelforceStream):
             raise InvalidStartAndEndDateException("`date_created_from` should be less than or equal to `date_created_to`")
 
         if self.date_created_from:
-            params.update({"filters.dateCreated.from": self.date_created_from})
+            params["filters.dateCreated.from"] = self.date_created_from
 
         if self.date_created_to:
-            params.update({"filters.dateCreated.to": self.date_created_to})
+            params["filters.dateCreated.to"] = self.date_created_to
 
         return params
 

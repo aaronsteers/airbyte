@@ -74,7 +74,10 @@ class ManifestDeclarativeSource(DeclarativeSource):
         if "type" not in check:
             check["type"] = "CheckStream"
         check_stream = self._constructor.create_component(
-            CheckStreamModel, check, dict(), emit_connector_builder_messages=self._emit_connector_builder_messages
+            CheckStreamModel,
+            check,
+            {},
+            emit_connector_builder_messages=self._emit_connector_builder_messages,
         )
         if isinstance(check_stream, ConnectionChecker):
             return check_stream
@@ -106,14 +109,12 @@ class ManifestDeclarativeSource(DeclarativeSource):
         self._configure_logger_level(logger)
         self._emit_manifest_debug_message(extra_args={"source_name": self.name, "parsed_config": json.dumps(self._source_config)})
 
-        spec = self._source_config.get("spec")
-        if spec:
-            if "type" not in spec:
-                spec["type"] = "Spec"
-            spec_component = self._constructor.create_component(SpecModel, spec, dict())
-            return spec_component.generate_spec()
-        else:
+        if not (spec := self._source_config.get("spec")):
             return super().spec(logger)
+        if "type" not in spec:
+            spec["type"] = "Spec"
+        spec_component = self._constructor.create_component(SpecModel, spec, {})
+        return spec_component.generate_spec()
 
     def check(self, logger: logging.Logger, config: Mapping[str, Any]) -> AirbyteConnectionStatus:
         self._configure_logger_level(logger)
@@ -181,7 +182,9 @@ class ManifestDeclarativeSource(DeclarativeSource):
         Takes a semantic version represented as a string and splits it into a tuple of its major, minor, and patch versions.
         """
         version_parts = re.split(r"\.", version)
-        if len(version_parts) != 3 or not all([part.isdigit() for part in version_parts]):
+        if len(version_parts) != 3 or not all(
+            part.isdigit() for part in version_parts
+        ):
             raise ValidationError(f"The {version_type} version {version} specified is not a valid version format (ex. 1.2.3)")
         return (int(part) for part in version_parts)
 

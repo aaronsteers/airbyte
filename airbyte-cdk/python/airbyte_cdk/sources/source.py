@@ -52,22 +52,21 @@ class Source(
         :param state_path: The filepath to where the stream states are located
         :return: The complete stream state based on the connector's previous sync
         """
-        if state_path:
-            state_obj = self._read_json_file(state_path)
-            if not state_obj:
-                return self._emit_legacy_state_format({})
-            is_per_stream_state = isinstance(state_obj, List)
-            if is_per_stream_state:
-                parsed_state_messages = []
-                for state in state_obj:
-                    parsed_message = AirbyteStateMessage.parse_obj(state)
-                    if not parsed_message.stream and not parsed_message.data and not parsed_message.global_:
-                        raise ValueError("AirbyteStateMessage should contain either a stream, global, or state field")
-                    parsed_state_messages.append(parsed_message)
-                return parsed_state_messages
-            else:
-                return self._emit_legacy_state_format(state_obj)
-        return self._emit_legacy_state_format({})
+        if not state_path:
+            return self._emit_legacy_state_format({})
+        state_obj = self._read_json_file(state_path)
+        if not state_obj:
+            return self._emit_legacy_state_format({})
+        is_per_stream_state = isinstance(state_obj, List)
+        if not is_per_stream_state:
+            return self._emit_legacy_state_format(state_obj)
+        parsed_state_messages = []
+        for state in state_obj:
+            parsed_message = AirbyteStateMessage.parse_obj(state)
+            if not parsed_message.stream and not parsed_message.data and not parsed_message.global_:
+                raise ValueError("AirbyteStateMessage should contain either a stream, global, or state field")
+            parsed_state_messages.append(parsed_message)
+        return parsed_state_messages
 
     def _emit_legacy_state_format(self, state_obj) -> Union[List[AirbyteStateMessage], MutableMapping[str, Any]]:
         """
@@ -75,14 +74,12 @@ class Source(
         send state in the old format for these connectors, but once all have been upgraded, this method can be removed,
         and we can then emit state in the list format.
         """
-        # vars(self.__class__) checks if the current class directly overrides the read() function
         if "read" in vars(self.__class__):
             return defaultdict(dict, state_obj)
+        if state_obj:
+            return [AirbyteStateMessage(type=AirbyteStateType.LEGACY, data=state_obj)]
         else:
-            if state_obj:
-                return [AirbyteStateMessage(type=AirbyteStateType.LEGACY, data=state_obj)]
-            else:
-                return []
+            return []
 
     # can be overridden to change an input catalog
     @classmethod

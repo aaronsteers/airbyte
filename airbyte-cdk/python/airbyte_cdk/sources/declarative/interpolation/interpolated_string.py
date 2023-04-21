@@ -40,9 +40,11 @@ class InterpolatedString:
         return self._interpolation.eval(self.string, config, self.default, parameters=self._parameters, **kwargs)
 
     def __eq__(self, other):
-        if not isinstance(other, InterpolatedString):
-            return False
-        return self.string == other.string and self.default == other.default
+        return (
+            self.string == other.string and self.default == other.default
+            if isinstance(other, InterpolatedString)
+            else False
+        )
 
     @classmethod
     def create(

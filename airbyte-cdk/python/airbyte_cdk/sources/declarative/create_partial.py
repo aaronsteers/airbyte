@@ -35,7 +35,7 @@ def create(func, /, *args, **keywords):
         if PARAMETERS_STR in all_keywords:
             parameters = all_keywords.get(PARAMETERS_STR)
         else:
-            parameters = dict()
+            parameters = {}
 
         # if config is not none, add it back to the keywords mapping
         if config is not None:
@@ -83,10 +83,7 @@ def _key_is_unset_or_identical(key: str, value: Any, mapping: Mapping[str, Any])
 
 
 def _create_inner_objects(keywords, kwargs):
-    fully_created = dict()
-    for k, v in keywords.items():
-        if type(v) == type(create):
-            fully_created[k] = v(kwargs=kwargs)
-        else:
-            fully_created[k] = v
-    return fully_created
+    return {
+        k: v(kwargs=kwargs) if type(v) == type(create) else v
+        for k, v in keywords.items()
+    }

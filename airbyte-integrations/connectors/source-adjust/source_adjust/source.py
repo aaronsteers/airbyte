@@ -97,10 +97,7 @@ class AdjustReportStream(HttpStream, IncrementalMixin):
             row.pop("attr_dependency", None)
             # Unfortunately all fields are returned as strings by the API
             for k, v in list(row.items()):
-                if k in model:
-                    type_ = model[k].type_
-                else:  # Additional user-provided metrics are assumed to be decimal
-                    type_ = decimal.Decimal
+                type_ = model[k].type_ if k in model else decimal.Decimal
                 if type_ in (int, decimal.Decimal):
                     try:
                         row[k] = type_(v)

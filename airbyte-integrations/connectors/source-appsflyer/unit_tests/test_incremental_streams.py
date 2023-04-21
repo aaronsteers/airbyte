@@ -84,11 +84,11 @@ def test_request_params(mocker, class_, cursor_field, date_only, additional_fiel
     stream = class_()
     start = pendulum.yesterday(timezone)
     end = pendulum.today(timezone)
-    inputs = dict()
-    inputs["stream_slice"] = {cursor_field: start, cursor_field + "_end": end}
+    inputs = {}
+    inputs["stream_slice"] = {cursor_field: start, f"{cursor_field}_end": end}
     inputs["next_page_token"] = None
     inputs["stream_state"] = None
-    expected_params = dict()
+    expected_params = {}
     expected_params["api_token"] = "secret"
     expected_params["timezone"] = timezone
     expected_params["maximum_rows"] = 1_000_000
@@ -171,5 +171,4 @@ def test_source_defined_cursor(patch_incremental_base_class, mocker):
 def test_stream_checkpoint_interval(patch_incremental_base_class, mocker):
     mocker.patch.object(IncrementalAppsflyerStream, "__init__", lambda x: None)
     stream = IncrementalAppsflyerStream()
-    expected_checkpoint_interval = None
-    assert stream.state_checkpoint_interval == expected_checkpoint_interval
+    assert stream.state_checkpoint_interval is None

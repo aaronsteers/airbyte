@@ -29,7 +29,7 @@ def test_counter_finish_event():
 
 def test_timer_multiple_events():
     with create_timer("Counter") as timer:
-        for i in range(10):
+        for _ in range(10):
             timer.start_event("test_event")
             timer.finish_event()
         assert timer.count == 10

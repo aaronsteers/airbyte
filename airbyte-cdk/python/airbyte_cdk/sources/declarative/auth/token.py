@@ -207,9 +207,8 @@ class SessionTokenAuthenticator(AbstractHeaderAuthenticator, DeclarativeAuthenti
 
     @property
     def token(self) -> str:
-        if self._session_token.eval(self.config):
-            if self.is_valid_session_token():
-                return self._session_token.eval(self.config)
+        if self._session_token.eval(self.config) and self.is_valid_session_token():
+            return self._session_token.eval(self.config)
         if self._password.eval(self.config) and self._username.eval(self.config):
             username = self._username.eval(self.config)
             password = self._password.eval(self.config)
@@ -229,13 +228,11 @@ class SessionTokenAuthenticator(AbstractHeaderAuthenticator, DeclarativeAuthenti
             )
             response.raise_for_status()
         except requests.exceptions.HTTPError as e:
-            if e.response.status_code == requests.codes["unauthorized"]:
-                self.logger.info(f"Unable to connect by session token from config due to {str(e)}")
-                return False
-            else:
+            if e.response.status_code != requests.codes["unauthorized"]:
                 raise ConnectionError(f"Error while validating session token: {e}")
-        if response.ok:
-            self.logger.info("Connection check for source is successful.")
-            return True
-        else:
+            self.logger.info(f"Unable to connect by session token from config due to {str(e)}")
+            return False
+        if not response.ok:
             raise ConnectionError(f"Failed to retrieve new session token, response code {response.status_code} because {response.reason}")
+        self.logger.info("Connection check for source is successful.")
+        return True

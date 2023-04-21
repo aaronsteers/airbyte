@@ -34,7 +34,7 @@ class ClockifyStream(HttpStream, ABC):
         }
 
         if next_page_token:
-            params.update(next_page_token)
+            params |= next_page_token
 
         return params
 

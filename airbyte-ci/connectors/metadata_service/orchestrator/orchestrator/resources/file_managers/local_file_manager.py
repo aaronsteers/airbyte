@@ -41,7 +41,9 @@ class SimpleLocalFileManager(LocalFileManager):
 
         file_name = key if key is not None else str(uuid.uuid4())
 
-        dest_file_path = os.path.join(self.base_dir, file_name + (("." + ext) if ext is not None else ""))
+        dest_file_path = os.path.join(
+            self.base_dir, file_name + (f".{ext}" if ext is not None else "")
+        )
 
         self.ensure_dir_exists_for_file(dest_file_path)
 

@@ -90,17 +90,17 @@ class AddFields(RecordTransformation):
             if len(add_field.path) < 1:
                 raise f"Expected a non-zero-length path for the AddFields transformation {add_field}"
 
-            if not isinstance(add_field.value, InterpolatedString):
-                if not isinstance(add_field.value, str):
-                    raise f"Expected a string value for the AddFields transformation: {add_field}"
-                else:
-                    self._parsed_fields.append(
-                        ParsedAddFieldDefinition(
-                            add_field.path, InterpolatedString.create(add_field.value, parameters=parameters), parameters=parameters
-                        )
-                    )
-            else:
+            if isinstance(add_field.value, InterpolatedString):
                 self._parsed_fields.append(ParsedAddFieldDefinition(add_field.path, add_field.value, parameters={}))
+
+            elif not isinstance(add_field.value, str):
+                raise f"Expected a string value for the AddFields transformation: {add_field}"
+            else:
+                self._parsed_fields.append(
+                    ParsedAddFieldDefinition(
+                        add_field.path, InterpolatedString.create(add_field.value, parameters=parameters), parameters=parameters
+                    )
+                )
 
     def transform(
         self,

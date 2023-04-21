@@ -37,18 +37,14 @@ def hash(value, hash_type="md5", salt=None):
                    is different from the hash created for that value on other systems.
       :return: computed hash as a hexadecimal string
     """
-    hash_func = getattr(hashlib, hash_type, None)
-
-    if hash_func:
-        hash_obj = hash_func()
-        hash_obj.update(str(value).encode("utf-8"))
-        if salt:
-            hash_obj.update(str(salt).encode("utf-8"))
-        computed_hash = hash_obj.hexdigest()
-    else:
+    if not (hash_func := getattr(hashlib, hash_type, None)):
         raise AttributeError("No hashing function named {hname}".format(hname=hash_type))
 
-    return computed_hash
+    hash_obj = hash_func()
+    hash_obj.update(str(value).encode("utf-8"))
+    if salt:
+        hash_obj.update(str(salt).encode("utf-8"))
+    return hash_obj.hexdigest()
 
 
 _filters_list = [hash]

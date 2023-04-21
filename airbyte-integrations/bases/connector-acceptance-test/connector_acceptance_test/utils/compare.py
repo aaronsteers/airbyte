@@ -98,6 +98,4 @@ def make_hashable(obj, exclude_fields: List[str] = None) -> str:
         if exclude_fields:
             delete_fields(obj, exclude_fields)
         return DictWithHashMixin(obj)
-    if isinstance(obj, List):
-        return ListWithHashMixin(obj)
-    return obj
+    return ListWithHashMixin(obj) if isinstance(obj, List) else obj

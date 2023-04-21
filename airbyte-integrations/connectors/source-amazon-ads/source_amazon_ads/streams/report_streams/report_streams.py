@@ -204,19 +204,25 @@ class ReportStream(BasicAmazonAdsStream, ABC):
             if report_status == Status.FAILURE:
                 message = f"Report for {report_info.profile_id} with {report_info.record_type} type generation failed"
                 raise ReportGenerationFailure(message)
-            elif report_status == Status.SUCCESS or report_status == Status.COMPLETED:
+            elif report_status in [Status.SUCCESS, Status.COMPLETED]:
                 try:
                     report_info.metric_objects = self._download_report(report_info, download_url)
                 except requests.HTTPError as error:
                     raise ReportGenerationFailure(error)
 
-        pending_report_status = [(r.profile_id, r.report_id, r.status) for r in self._incomplete_report_infos(report_infos)]
-        if len(pending_report_status) > 0:
+        if pending_report_status := [
+            (r.profile_id, r.report_id, r.status)
+            for r in self._incomplete_report_infos(report_infos)
+        ]:
             message = f"Report generation in progress: {repr(pending_report_status)}"
             raise ReportGenerationInProgress(message)
 
     def _incomplete_report_infos(self, report_infos):
-        return [r for r in report_infos if r.status != Status.SUCCESS and r.status != Status.COMPLETED]
+        return [
+            r
+            for r in report_infos
+            if r.status not in [Status.SUCCESS, Status.COMPLETED]
+        ]
 
     def _generate_model(self):
         """
@@ -296,16 +302,15 @@ class ReportStream(BasicAmazonAdsStream, ABC):
         return response
 
     def get_date_range(self, start_date: Date, timezone: str) -> Iterable[str]:
-        while True:
-            if start_date > pendulum.today(tz=timezone).date():
-                break
+        while not start_date > pendulum.today(tz=timezone).date():
             yield start_date.format(self.REPORT_DATE_FORMAT)
             start_date = start_date.add(days=1)
 
     def get_start_date(self, profile: Profile, stream_state: Mapping[str, Any]) -> Date:
         today = pendulum.today(tz=profile.timezone).date()
-        start_date = stream_state.get(str(profile.profileId), {}).get(self.cursor_field)
-        if start_date:
+        if start_date := stream_state.get(str(profile.profileId), {}).get(
+            self.cursor_field
+        ):
             start_date = pendulum.from_format(start_date, self.REPORT_DATE_FORMAT).date()
             # Taking date from state if it's not older than 60 days
             return max(start_date, today.subtract(days=self.REPORTING_PERIOD))
@@ -350,8 +355,9 @@ class ReportStream(BasicAmazonAdsStream, ABC):
         start_date = self.get_start_date(profile, self._state)
         updated_state = max(min(report_date, look_back_date), start_date).format(self.REPORT_DATE_FORMAT)
 
-        stream_state_value = self._state.get(str(profile.profileId), {}).get(self.cursor_field)
-        if stream_state_value:
+        if stream_state_value := self._state.get(str(profile.profileId), {}).get(
+            self.cursor_field
+        ):
             updated_state = max(updated_state, stream_state_value)
         self._state.setdefault(str(profile.profileId), {})[self.cursor_field] = updated_state
 
@@ -443,13 +449,13 @@ class ReportStream(BasicAmazonAdsStream, ABC):
         """
         return True if we get known error which we need to skip
         """
-        response_details = self._get_response_error_details(response)
-        if response_details:
+        if response_details := self._get_response_error_details(response):
             for status_code, details in self.ERRORS:
-                if response.status_code == status_code:
-                    if isinstance(details, re.Pattern):
-                        if details.match(response_details):
-                            return True
-                    elif details == response_details:
-                        return True
+                if response.status_code == status_code and (
+                    isinstance(details, re.Pattern)
+                    and details.match(response_details)
+                    or not isinstance(details, re.Pattern)
+                    and details == response_details
+                ):
+                    return True
         return False

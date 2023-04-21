@@ -291,8 +291,9 @@ class ModelToComponentFactory:
         for model_field, model_value in model_args.items():
             # If a custom component field doesn't have a type set, we try to use the type hints to infer the type
             if isinstance(model_value, dict) and "type" not in model_value and model_field in component_fields:
-                derived_type = self._derive_component_type_from_type_hints(component_fields.get(model_field))
-                if derived_type:
+                if derived_type := self._derive_component_type_from_type_hints(
+                    component_fields.get(model_field)
+                ):
                     model_value["type"] = derived_type
 
             if self._is_component(model_value):
@@ -301,8 +302,9 @@ class ModelToComponentFactory:
                 vals = []
                 for v in model_value:
                     if isinstance(v, dict) and "type" not in v and model_field in component_fields:
-                        derived_type = self._derive_component_type_from_type_hints(component_fields.get(model_field))
-                        if derived_type:
+                        if derived_type := self._derive_component_type_from_type_hints(
+                            component_fields.get(model_field)
+                        ):
                             v["type"] = derived_type
                     if self._is_component(v):
                         vals.append(self._create_nested_component(model, model_field, v, config))
@@ -323,31 +325,24 @@ class ModelToComponentFactory:
     @staticmethod
     def _derive_component_type_from_type_hints(field_type: str) -> Optional[str]:
         interface = field_type
-        while True:
-            origin = get_origin(interface)
-            if origin:
-                # Unnest types until we reach the raw type
-                # List[T] -> T
-                # Optional[List[T]] -> T
-                args = get_args(interface)
-                interface = args[0]
-            else:
-                break
+        while origin := get_origin(interface):
+            # Unnest types until we reach the raw type
+            # List[T] -> T
+            # Optional[List[T]] -> T
+            args = get_args(interface)
+            interface = args[0]
         if isinstance(interface, type) and not ModelToComponentFactory.is_builtin_type(interface):
             return interface.__name__
         return None
 
     @staticmethod
     def is_builtin_type(cls) -> bool:
-        if not cls:
-            return False
-        return cls.__module__ == "builtins"
+        return cls.__module__ == "builtins" if cls else False
 
     @staticmethod
     def _extract_missing_parameters(error: TypeError) -> List[str]:
-        parameter_search = re.search(r"keyword-only.*:\s(.*)", str(error))
-        if parameter_search:
-            return re.findall(r"\'(.+?)\'", parameter_search.group(1))
+        if parameter_search := re.search(r"keyword-only.*:\s(.*)", str(error)):
+            return re.findall(r"\'(.+?)\'", parameter_search[1])
         else:
             return []
 
@@ -357,8 +352,7 @@ class ModelToComponentFactory:
             # If no type is specified, we can assume this is a dictionary object which can be returned instead of a subcomponent
             return model_value
 
-        model_type = self.TYPE_NAME_TO_MODEL.get(type_name, None)
-        if model_type:
+        if model_type := self.TYPE_NAME_TO_MODEL.get(type_name, None):
             parsed_model = model_type.parse_obj(model_value)
             try:
                 # To improve usability of the language, certain fields are shared between components. This can come in the form of
@@ -373,8 +367,7 @@ class ModelToComponentFactory:
                 matching_parameters = {kwarg: model_parameters[kwarg] for kwarg in constructor_kwargs if kwarg in model_parameters}
                 return self._create_component_from_model(model=parsed_model, config=config, **matching_parameters)
             except TypeError as error:
-                missing_parameters = self._extract_missing_parameters(error)
-                if missing_parameters:
+                if missing_parameters := self._extract_missing_parameters(error):
                     raise ValueError(
                         f"Error creating component '{type_name}' with parent custom component {model.class_name}: Please provide "
                         + ", ".join((f"{type_name}.$parameters.{parameter}" for parameter in missing_parameters))
@@ -456,8 +449,12 @@ class ModelToComponentFactory:
 
         transformations = []
         if model.transformations:
-            for transformation_model in model.transformations:
-                transformations.append(self._create_component_from_model(model=transformation_model, config=config))
+            transformations.extend(
+                self._create_component_from_model(
+                    model=transformation_model, config=config
+                )
+                for transformation_model in model.transformations
+            )
         return DeclarativeStream(
             name=model.name,
             primary_key=primary_key,
@@ -497,23 +494,39 @@ class ModelToComponentFactory:
     def create_default_error_handler(self, model: DefaultErrorHandlerModel, config: Config, **kwargs) -> DefaultErrorHandler:
         backoff_strategies = []
         if model.backoff_strategies:
-            for backoff_strategy_model in model.backoff_strategies:
-                backoff_strategies.append(self._create_component_from_model(model=backoff_strategy_model, config=config))
+            backoff_strategies.extend(
+                self._create_component_from_model(
+                    model=backoff_strategy_model, config=config
+                )
+                for backoff_strategy_model in model.backoff_strategies
+            )
         else:
             backoff_strategies.append(DEFAULT_BACKOFF_STRATEGY(config=config, parameters=model.parameters))
 
         response_filters = []
         if model.response_filters:
-            for response_filter_model in model.response_filters:
-                response_filters.append(self._create_component_from_model(model=response_filter_model, config=config))
+            response_filters.extend(
+                self._create_component_from_model(
+                    model=response_filter_model, config=config
+                )
+                for response_filter_model in model.response_filters
+            )
         else:
-            response_filters.append(
-                HttpResponseFilter(
-                    ResponseAction.RETRY, http_codes=HttpResponseFilter.DEFAULT_RETRIABLE_ERRORS, config=config, parameters=model.parameters
+            response_filters.extend(
+                (
+                    HttpResponseFilter(
+                        ResponseAction.RETRY,
+                        http_codes=HttpResponseFilter.DEFAULT_RETRIABLE_ERRORS,
+                        config=config,
+                        parameters=model.parameters,
+                    ),
+                    HttpResponseFilter(
+                        ResponseAction.IGNORE,
+                        config=config,
+                        parameters=model.parameters,
+                    ),
                 )
             )
-            response_filters.append(HttpResponseFilter(ResponseAction.IGNORE, config=config, parameters=model.parameters))
-
         return DefaultErrorHandler(
             backoff_strategies=backoff_strategies,
             max_retries=model.max_retries,

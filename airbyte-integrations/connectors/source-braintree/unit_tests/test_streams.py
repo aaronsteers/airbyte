@@ -27,7 +27,7 @@ def load_file(fn):
 
 def read_all_records(stream):
     stream_slice = {stream.cursor_field or "start_date": pendulum.utcnow()}
-    return [r for r in stream.read_records(None, None, stream_slice)]
+    return list(stream.read_records(None, None, stream_slice))
 
 
 @responses.activate

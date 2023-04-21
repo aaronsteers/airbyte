@@ -18,7 +18,7 @@ def reports_stream():
         aws_session_token="SessionToken",
         region="US",
     )
-    stream = MerchantListingsReports(
+    return MerchantListingsReports(
         url_base="https://test.url",
         aws_signature=aws_signature,
         replication_start_date="2017-01-25T00:00:00Z",
@@ -29,7 +29,6 @@ def reports_stream():
         report_options=None,
         max_wait_seconds=500,
     )
-    return stream
 
 
 def test_reports_stream_should_retry(mocker, reports_stream):

@@ -29,8 +29,7 @@ def sftp_client(
             password=password,
             look_for_keys=False,
         )
-        sftp = client.open_sftp()
-        yield sftp
+        yield client.open_sftp()
 
 
 class SftpClient:

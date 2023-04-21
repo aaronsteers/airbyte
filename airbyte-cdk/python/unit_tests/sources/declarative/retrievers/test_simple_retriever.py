@@ -115,7 +115,7 @@ def test_simple_retriever_full(mock_http_stream):
     assert retriever.cache_filename == cache_filename
     assert retriever.use_cache == use_cache
 
-    [r for r in retriever.read_records(SyncMode.full_refresh)]
+    list(retriever.read_records(SyncMode.full_refresh))
     paginator.reset.assert_called()
 
 
@@ -146,7 +146,7 @@ def test_simple_retriever_with_request_response_logs(mock_http_stream):
         config={},
     )
 
-    actual_messages = [r for r in retriever.read_records(SyncMode.full_refresh)]
+    actual_messages = list(retriever.read_records(SyncMode.full_refresh))
     paginator.reset.assert_called()
 
     assert isinstance(actual_messages[0], AirbyteLogMessage)
@@ -190,7 +190,7 @@ def test_simple_retriever_with_request_response_log_last_records(mock_http_strea
     assert retriever._last_response == response
     assert retriever._last_records == request_response_logs
 
-    [r for r in retriever.read_records(SyncMode.full_refresh)]
+    list(retriever.read_records(SyncMode.full_refresh))
     paginator.reset.assert_called()
 
 
@@ -332,7 +332,7 @@ def test_get_request_options_from_pagination(test_name, paginator_mapping, strea
         RequestOptionType.body_json: retriever.request_body_json,
     }
 
-    for _, method in request_option_type_to_method.items():
+    for method in request_option_type_to_method.values():
         if expected_mapping:
             actual_mapping = method(None, None, None)
             assert expected_mapping == actual_mapping
@@ -376,7 +376,7 @@ def test_get_request_headers(test_name, paginator_mapping, expected_mapping):
         RequestOptionType.header: retriever.request_headers,
     }
 
-    for _, method in request_option_type_to_method.items():
+    for method in request_option_type_to_method.values():
         if expected_mapping:
             actual_mapping = method(None, None, None)
             assert expected_mapping == actual_mapping
@@ -728,9 +728,14 @@ def test_emit_log_request_response_messages():
         config={},
     )
 
-    request_log_message, response_log_message, record_1, record_2 = [
-        record for record in retriever.parse_records(request=request, response=response, stream_slice={}, stream_state={})
-    ]
+    request_log_message, response_log_message, record_1, record_2 = list(
+        retriever.parse_records(
+            request=request,
+            response=response,
+            stream_slice={},
+            stream_state={},
+        )
+    )
 
     assert isinstance(request_log_message, AirbyteMessage)
     assert request_log_message.type == Type.LOG

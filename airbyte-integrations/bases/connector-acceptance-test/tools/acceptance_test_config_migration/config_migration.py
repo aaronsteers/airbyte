@@ -37,9 +37,8 @@ def load_config(config_path: Path) -> Config:
 def migrate_to_new_config_format(config: Config):
     if Config.is_legacy(config):
         return Config.migrate_legacy_to_current_config(config)
-    else:
-        logging.warning("The configuration is not in a legacy format.")
-        return config
+    logging.warning("The configuration is not in a legacy format.")
+    return config
 
 
 def set_high_test_strictness_level(config):

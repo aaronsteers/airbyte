@@ -46,9 +46,6 @@ def test_set_headers():
     TEST_SPREADSHEET.set_headers("test_stream", ["id", "key"])
     test_wks = TEST_SPREADSHEET.open_worksheet(TEST_STREAM)
     headers = test_wks[1]
-    for header in test_headers:
-        if header in headers:
-            assert True
 
 
 def test_index_cols():

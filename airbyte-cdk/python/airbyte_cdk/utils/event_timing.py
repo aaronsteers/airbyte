@@ -65,9 +65,7 @@ class Event:
     @property
     def duration(self) -> float:
         """Returns the elapsed time in seconds or positive infinity if event was never finished"""
-        if self.end:
-            return (self.end - self.start) / 1e9
-        return float("+inf")
+        return (self.end - self.start) / 1e9 if self.end else float("+inf")
 
     def __str__(self):
         return f"{self.name} {datetime.timedelta(seconds=self.duration)}"
@@ -81,5 +79,4 @@ def create_timer(name):
     """
     Creates a new EventTimer as a context manager to improve code readability.
     """
-    a_timer = EventTimer(name)
-    yield a_timer
+    yield EventTimer(name)

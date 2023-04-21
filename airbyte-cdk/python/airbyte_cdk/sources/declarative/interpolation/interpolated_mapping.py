@@ -34,13 +34,12 @@ class InterpolatedMapping:
         :param additional_parameters: Optional parameters used for interpolation
         :return: The interpolated string
         """
-        interpolated_values = {
-            self._interpolation.eval(name, config, parameters=self._parameters, **additional_parameters): self._eval(
-                value, config, **additional_parameters
-            )
+        return {
+            self._interpolation.eval(
+                name, config, parameters=self._parameters, **additional_parameters
+            ): self._eval(value, config, **additional_parameters)
             for name, value in self.mapping.items()
         }
-        return interpolated_values
 
     def _eval(self, value, config, **kwargs):
         # The values in self._mapping can be of Any type

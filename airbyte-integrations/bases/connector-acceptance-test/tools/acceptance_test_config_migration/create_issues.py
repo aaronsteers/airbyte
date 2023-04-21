@@ -67,8 +67,7 @@ def get_existing_issues(issue_content):
     list_command_arguments = ["gh", "issue", "list", "--state", "open", "--search", f"'{issue_content['title']}'", "--json", "url"]
     list_existing_issue_process = subprocess.Popen(list_command_arguments, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     stdout, stderr = list_existing_issue_process.communicate()
-    existing_issues = json.loads(stdout.decode())
-    return existing_issues
+    return json.loads(stdout.decode())
 
 
 def create_command(issue_content):
@@ -93,20 +92,18 @@ def create_issue(source_definition, dry_run=True):
     if not issue_content:
         return
 
-    existing_issues = get_existing_issues(issue_content)
-    if existing_issues:
+    if existing_issues := get_existing_issues(issue_content):
         logging.warning(f"An issue was already created for {source_definition['name']}: {existing_issues[0]}")
+    elif dry_run:
+        logging.info(f"[DRY RUN]: {' '.join(create_command(issue_content))}")
     else:
-        if not dry_run:
-            process = subprocess.Popen(create_command(issue_content), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-            stdout, stderr = process.communicate()
-            if stderr:
-                logging.error(stderr.decode())
-            else:
-                created_issue_url = stdout.decode()
-                logging.info(f"Created issue for {source_definition['name']}: {created_issue_url}")
+        process = subprocess.Popen(create_command(issue_content), stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdout, stderr = process.communicate()
+        if stderr:
+            logging.error(stderr.decode())
         else:
-            logging.info(f"[DRY RUN]: {' '.join(create_command(issue_content))}")
+            created_issue_url = stdout.decode()
+            logging.info(f"Created issue for {source_definition['name']}: {created_issue_url}")
     os.remove(issue_content["body_file"])
 
 

@@ -60,5 +60,4 @@ def test_should_retry(patch_base_class, http_status, should_retry):
 def test_backoff_time(patch_base_class):
     response_mock = MagicMock()
     stream = BabelforceStream(region="services")
-    expected_backoff_time = None
-    assert stream.backoff_time(response_mock) == expected_backoff_time
+    assert stream.backoff_time(response_mock) is None

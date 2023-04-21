@@ -222,7 +222,7 @@ class FireboltSQLWriter(FireboltWriter):
 def create_firebolt_wirter(connection: Connection, config: json, logger: AirbyteLogger) -> FireboltWriter:
     if config["loading_method"]["method"] == "S3":
         logger.info("Using the S3 writing strategy")
-        writer = FireboltS3Writer(
+        return FireboltS3Writer(
             connection,
             config["loading_method"]["s3_bucket"],
             config["loading_method"]["aws_key_id"],
@@ -231,5 +231,4 @@ def create_firebolt_wirter(connection: Connection, config: json, logger: Airbyte
         )
     else:
         logger.info("Using the SQL writing strategy")
-        writer = FireboltSQLWriter(connection)
-    return writer
+        return FireboltSQLWriter(connection)

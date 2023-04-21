@@ -235,9 +235,9 @@ def test_get_grouped_messages_record_limit(request_record_limit, max_record_limi
         mock_source, config=CONFIG, configured_catalog=create_configured_catalog("hashiras"), record_limit=request_record_limit
     )
     single_slice = actual_response.slices[0]
-    total_records = 0
-    for i, actual_page in enumerate(single_slice.pages):
-        total_records += len(actual_page.records)
+    total_records = sum(
+        len(actual_page.records) for actual_page in single_slice.pages
+    )
     assert total_records == min([record_limit, n_records])
 
 
@@ -276,9 +276,9 @@ def test_get_grouped_messages_default_record_limit(max_record_limit):
         source=mock_source, config=CONFIG, configured_catalog=create_configured_catalog("hashiras")
     )
     single_slice = actual_response.slices[0]
-    total_records = 0
-    for i, actual_page in enumerate(single_slice.pages):
-        total_records += len(actual_page.records)
+    total_records = sum(
+        len(actual_page.records) for actual_page in single_slice.pages
+    )
     assert total_records == min([max_record_limit, n_records])
 
 

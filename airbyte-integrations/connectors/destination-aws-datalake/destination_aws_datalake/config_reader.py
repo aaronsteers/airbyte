@@ -25,10 +25,7 @@ class OutputFormat(enum.Enum):
 
     @staticmethod
     def from_string(s: str):
-        if s == "Parquet":
-            return OutputFormat.PARQUET
-
-        return OutputFormat.JSONL
+        return OutputFormat.PARQUET if s == "Parquet" else OutputFormat.JSONL
 
 
 class CompressionCodec(enum.Enum):

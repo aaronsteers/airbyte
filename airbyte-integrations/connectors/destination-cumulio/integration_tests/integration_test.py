@@ -76,8 +76,9 @@ def delete_datasets(
 ):
     cumulio_client = CumulioClient(config, logger)
     for stream in configured_catalog.streams:
-        dataset = cumulio_client.get_dataset_and_columns_from_stream_name(stream.stream.name)
-        if dataset:
+        if dataset := cumulio_client.get_dataset_and_columns_from_stream_name(
+            stream.stream.name
+        ):
             logger.info(
                 f"Existing integration test dataset found. Will delete Cumul.io dataset for integration test stream {stream.stream.name}."
             )
@@ -168,12 +169,14 @@ def _retrieve_all_records(cumulio_client, stream_name):
         raw_data = cumulio_client.client.get("data", raw_data_query)
         airbyte_data_to_return = []
         for row in raw_data["data"]:
-            airbyte_data_row = {}
-            for col_ind, column in enumerate(dataset_and_columns["columns"]):
-                if isinstance(row[col_ind], dict):
-                    airbyte_data_row[column["source_name"]] = row[col_ind]["id"]
-                else:
-                    airbyte_data_row[column["source_name"]] = row[col_ind]
+            airbyte_data_row = {
+                column["source_name"]: row[col_ind]["id"]
+                if isinstance(row[col_ind], dict)
+                else row[col_ind]
+                for col_ind, column in enumerate(
+                    dataset_and_columns["columns"]
+                )
+            }
             airbyte_data_to_return.append(
                 AirbyteMessage(
                     type=Type.RECORD,
@@ -202,7 +205,7 @@ def test_write_append(
 
     state_message = _state({"state": "3"})
     record_chunk_1 = [
-        _record(stream_name, "test-" + str(i), i, {"test": i}, ["test", i])
+        _record(stream_name, f"test-{str(i)}", i, {"test": i}, ["test", i])
         for i in range(1, 3)
     ]
 
@@ -212,7 +215,7 @@ def test_write_append(
     assert [state_message] == output_states_1
 
     record_chunk_2 = [
-        _record(stream_name, "test-" + str(i), i, {"test": i}, ["test", i])
+        _record(stream_name, f"test-{str(i)}", i, {"test": i}, ["test", i])
         for i in range(3, 5)
     ]
 
@@ -231,7 +234,7 @@ def test_write_append(
             record=AirbyteRecordMessage(
                 stream=stream_name,
                 data={
-                    "string_col": "test-" + str(i),
+                    "string_col": f"test-{str(i)}",
                     "int_col": i,
                     "obj_col": json.dumps({"test": i}),
                     "arr_col": json.dumps(["test", i]),
@@ -261,7 +264,9 @@ def test_write_overwrite(
 
     state_message = _state({"state": "3"})
     record_chunk_1 = [
-        _record(stream_name, "oldtest-" + str(i), i, {"oldtest": i}, ["oldtest", i])
+        _record(
+            stream_name, f"oldtest-{str(i)}", i, {"oldtest": i}, ["oldtest", i]
+        )
         for i in range(1, 3)
     ]
 
@@ -271,7 +276,9 @@ def test_write_overwrite(
     assert [state_message] == output_states_1
 
     record_chunk_2 = [
-        _record(stream_name, "newtest-" + str(i), i, {"newtest": i}, ["newtest", i])
+        _record(
+            stream_name, f"newtest-{str(i)}", i, {"newtest": i}, ["newtest", i]
+        )
         for i in range(1, 3)
     ]
 
@@ -290,7 +297,7 @@ def test_write_overwrite(
             record=AirbyteRecordMessage(
                 stream=stream_name,
                 data={
-                    "string_col": "newtest-" + str(i),
+                    "string_col": f"newtest-{str(i)}",
                     "int_col": i,
                     "obj_col": json.dumps({"newtest": i}),
                     "arr_col": json.dumps(["newtest", i]),

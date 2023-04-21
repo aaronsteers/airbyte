@@ -27,7 +27,7 @@ def logger() -> MagicMock:
 
 @fixture
 def config() -> Dict[str, str]:
-    args = {
+    return {
         "database": "default",
         "username": "root",
         "password": "root",
@@ -35,7 +35,6 @@ def config() -> Dict[str, str]:
         "port": 8081,
         "table": "default",
     }
-    return args
 
 
 @fixture(name="mock_connection")

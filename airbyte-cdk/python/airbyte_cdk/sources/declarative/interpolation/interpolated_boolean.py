@@ -38,11 +38,7 @@ class InterpolatedBoolean:
         """
         if isinstance(self.condition, bool):
             return self.condition
-        else:
-            evaluated = self._interpolation.eval(
-                self.condition, config, self._default, parameters=self._parameters, **additional_parameters
-            )
-            if evaluated in FALSE_VALUES:
-                return False
-            # The presence of a value is generally regarded as truthy, so we treat it as such
-            return True
+        evaluated = self._interpolation.eval(
+            self.condition, config, self._default, parameters=self._parameters, **additional_parameters
+        )
+        return evaluated not in FALSE_VALUES

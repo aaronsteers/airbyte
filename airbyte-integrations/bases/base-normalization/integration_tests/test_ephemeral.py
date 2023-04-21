@@ -121,7 +121,9 @@ def run_test(destination_type: DestinationType, column_count: int, expected_exce
     if expected_exception_message:
         with pytest.raises(AssertionError):
             dbt_test_utils.dbt_run(destination_type, test_root_dir)
-        assert search_logs_for_pattern(test_root_dir + "/dbt_output.log", expected_exception_message)
+        assert search_logs_for_pattern(
+            f"{test_root_dir}/dbt_output.log", expected_exception_message
+        )
     else:
         dbt_test_utils.dbt_run(destination_type, test_root_dir)
 

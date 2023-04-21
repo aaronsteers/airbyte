@@ -78,25 +78,23 @@ def test_source_streams(config):
     streams = source.streams(config)
     assert len(streams) == 22
     actual_stream_names = {stream.name for stream in streams}
-    expected_stream_names = set(
-        [
-            "profiles",
-            "sponsored_display_campaigns",
-            "sponsored_product_campaigns",
-            "sponsored_product_ad_groups",
-            "sponsored_product_keywords",
-            "sponsored_product_negative_keywords",
-            "sponsored_product_ads",
-            "sponsored_product_targetings",
-            "sponsored_products_report_stream",
-            "sponsored_brands_campaigns",
-            "sponsored_brands_ad_groups",
-            "sponsored_brands_keywords",
-            "sponsored_brands_report_stream",
-            "attribution_report_performance_adgroup",
-            "attribution_report_performance_campaign",
-            "attribution_report_performance_creative",
-            "attribution_report_products",
-        ]
-    )
+    expected_stream_names = {
+        "profiles",
+        "sponsored_display_campaigns",
+        "sponsored_product_campaigns",
+        "sponsored_product_ad_groups",
+        "sponsored_product_keywords",
+        "sponsored_product_negative_keywords",
+        "sponsored_product_ads",
+        "sponsored_product_targetings",
+        "sponsored_products_report_stream",
+        "sponsored_brands_campaigns",
+        "sponsored_brands_ad_groups",
+        "sponsored_brands_keywords",
+        "sponsored_brands_report_stream",
+        "attribution_report_performance_adgroup",
+        "attribution_report_performance_campaign",
+        "attribution_report_performance_creative",
+        "attribution_report_products",
+    }
     assert not expected_stream_names - actual_stream_names

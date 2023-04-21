@@ -55,13 +55,14 @@ class CommercetoolsStream(HttpStream, ABC):
         params = {"offset": self.offset, "limit": self.limit}
         if next_page_token:
             params.update(**next_page_token)
-        params.update({"sort": "lastModifiedAt asc"})
+        params["sort"] = "lastModifiedAt asc"
         return params
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         json_response = response.json()
-        records = json_response.get("results", []) if json_response is not None else []
-        yield from records
+        yield from json_response.get(
+            "results", []
+        ) if json_response is not None else []
 
 
 # Basic incremental stream
@@ -125,8 +126,7 @@ class SourceCommercetools(AbstractSource):
     def _convert_auth_to_token(self, username: str, password: str) -> str:
         username = username.encode("latin1")
         password = password.encode("latin1")
-        token = b64encode(b":".join((username, password))).strip().decode("ascii")
-        return token
+        return b64encode(b":".join((username, password))).strip().decode("ascii")
 
     def get_access_token(self, config) -> Tuple[str, any]:
         region = config["region"]
@@ -148,13 +148,10 @@ class SourceCommercetools(AbstractSource):
         host = config["host"]
         url = f"https://api.{region}.{host}.commercetools.com/{project_key}"
         access_token = self.get_access_token(config)
-        token_value = access_token[0]
-        token_exception = access_token[1]
-
-        if token_exception:
+        if token_exception := access_token[1]:
             return False, token_exception
 
-        if token_value:
+        if token_value := access_token[0]:
             auth = TokenAuthenticator(token=token_value).get_auth_header()
             try:
                 response = requests.get(url, headers=auth)

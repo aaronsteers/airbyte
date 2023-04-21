@@ -118,7 +118,7 @@ class AppsflyerStream(HttpStream, ABC):
 
     @transformer.registerCustomTransform
     def transform_function(original_value: Any, field_schema: Dict[str, Any]) -> Any:
-        if original_value == "" or original_value == "N/A" or original_value == "NULL":
+        if original_value in ["", "N/A", "NULL"]:
             return None
         if isinstance(original_value, float):
             return Decimal(original_value)
@@ -157,15 +157,19 @@ class IncrementalAppsflyerStream(AppsflyerStream, ABC):
 
     def get_date(self, cursor_value: Any, default_date: datetime, comparator: Callable[[datetime, datetime], datetime]) -> datetime:
         cursor_value = parse_date(cursor_value or default_date, self.timezone)
-        date = comparator(cursor_value, default_date)
-        return date
+        return comparator(cursor_value, default_date)
 
     def chunk_date_range(self, start_date: datetime) -> List[Mapping[str, any]]:
         dates = []
         delta = timedelta(days=self.intervals)
         while start_date <= self.end_date:
             end_date = self.get_date(start_date + delta, self.end_date, min)
-            dates.append({self.cursor_field: start_date, self.cursor_field + "_end": end_date})
+            dates.append(
+                {
+                    self.cursor_field: start_date,
+                    f"{self.cursor_field}_end": end_date,
+                }
+            )
             start_date += delta
         return dates
 
@@ -179,7 +183,9 @@ class RawDataMixin:
     ) -> MutableMapping[str, Any]:
         params = super().request_params(stream_state, stream_slice, next_page_token)
         params["from"] = stream_slice.get(self.cursor_field).to_datetime_string()
-        params["to"] = stream_slice.get(self.cursor_field + "_end").to_datetime_string()
+        params["to"] = stream_slice.get(
+            f"{self.cursor_field}_end"
+        ).to_datetime_string()
         # use currency set in the app settings to align with aggregate api currency.
         params["currency"] = "preferred"
 
@@ -194,7 +200,7 @@ class AggregateDataMixin:
     ) -> MutableMapping[str, Any]:
         params = super().request_params(stream_state, stream_slice, next_page_token)
         params["from"] = stream_slice.get(self.cursor_field).to_date_string()
-        params["to"] = stream_slice.get(self.cursor_field + "_end").to_date_string()
+        params["to"] = stream_slice.get(f"{self.cursor_field}_end").to_date_string()
 
         return params
 

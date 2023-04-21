@@ -40,20 +40,20 @@ class BigcommerceStream(HttpStream, ABC):
         """
         This functions tries to handle the various date-time formats BigCommerce API returns and normalize the values to isoformat.
         """
-        if "format" in field_schema and field_schema["format"] == "date-time":
-            if not original_value:  # Some dates are empty strings: "".
-                return None
-            transformed_value = None
-            supported_formats = ["YYYY-MM-DD", "YYYY-MM-DDTHH:mm:ssZZ", "YYYY-MM-DDTHH:mm:ss[Z]", "ddd, D MMM YYYY HH:mm:ss ZZ"]
-            for format in supported_formats:
-                try:
-                    transformed_value = str(pendulum.from_format(original_value, format))  # str() returns isoformat
-                except ValueError:
-                    continue
-            if not transformed_value:
-                raise ValueError(f"Unsupported date-time format for {original_value}")
-            return transformed_value
-        return original_value
+        if "format" not in field_schema or field_schema["format"] != "date-time":
+            return original_value
+        if not original_value:  # Some dates are empty strings: "".
+            return None
+        transformed_value = None
+        supported_formats = ["YYYY-MM-DD", "YYYY-MM-DDTHH:mm:ssZZ", "YYYY-MM-DDTHH:mm:ss[Z]", "ddd, D MMM YYYY HH:mm:ss ZZ"]
+        for format in supported_formats:
+            try:
+                transformed_value = str(pendulum.from_format(original_value, format))  # str() returns isoformat
+            except ValueError:
+                continue
+        if not transformed_value:
+            raise ValueError(f"Unsupported date-time format for {original_value}")
+        return transformed_value
 
     @property
     def url_base(self) -> str:
@@ -61,8 +61,7 @@ class BigcommerceStream(HttpStream, ABC):
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
         json_response = response.json()
-        meta = json_response.get("meta", None)
-        if meta:
+        if meta := json_response.get("meta", None):
             pagination = meta.get("pagination", None)
             if pagination and pagination.get("current_page") < pagination.get("total_pages"):
                 return dict(page=pagination.get("current_page") + 1)
@@ -72,8 +71,7 @@ class BigcommerceStream(HttpStream, ABC):
     def request_params(
         self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, any] = None, next_page_token: Mapping[str, Any] = None
     ) -> MutableMapping[str, Any]:
-        params = {"limit": self.limit}
-        params.update({"sort": self.order_field})
+        params = {"limit": self.limit, "sort": self.order_field}
         if next_page_token:
             params.update(**next_page_token)
         else:
@@ -89,8 +87,9 @@ class BigcommerceStream(HttpStream, ABC):
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         json_response = response.json()
-        records = json_response.get(self.data, []) if self.data is not None else json_response
-        yield from records
+        yield from json_response.get(
+            self.data, []
+        ) if self.data is not None else json_response
 
 
 class IncrementalBigcommerceStream(BigcommerceStream, ABC):
@@ -167,11 +166,10 @@ class Orders(IncrementalBigcommerceStream):
         return response.json() if len(response.content) > 0 else []
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
-        if len(response.content) > 0 and len(response.json()) == self.limit:
-            self.page = self.page + 1
-            return dict(page=self.page)
-        else:
+        if len(response.content) <= 0 or len(response.json()) != self.limit:
             return None
+        self.page = self.page + 1
+        return dict(page=self.page)
 
 
 class Pages(IncrementalBigcommerceStream):
@@ -202,8 +200,7 @@ class Brands(IncrementalBigcommerceStream):
     def request_params(
         self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, any] = None, next_page_token: Mapping[str, Any] = None
     ) -> MutableMapping[str, Any]:
-        params = {"limit": self.limit}
-        params.update({"sort": self.order_field})
+        params = {"limit": self.limit, "sort": self.order_field}
         if next_page_token:
             params.update(**next_page_token)
         return params
@@ -229,8 +226,7 @@ class Categories(IncrementalBigcommerceStream):
     def request_params(
         self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, any] = None, next_page_token: Mapping[str, Any] = None
     ) -> MutableMapping[str, Any]:
-        params = {"limit": self.limit}
-        params.update({"sort": self.order_field})
+        params = {"limit": self.limit, "sort": self.order_field}
         if next_page_token:
             params.update(**next_page_token)
         return params
@@ -259,8 +255,7 @@ class Transactions(OrderSubstream):
     def request_params(
         self, stream_state: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None, **kwargs
     ) -> MutableMapping[str, Any]:
-        params = {"limit": self.limit}
-        return params
+        return {"limit": self.limit}
 
 
 class OrderProducts(OrderSubstream):
@@ -278,18 +273,16 @@ class OrderProducts(OrderSubstream):
     def request_params(
         self, stream_state: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None, **kwargs
     ) -> MutableMapping[str, Any]:
-        params = {"limit": self.limit}
-        return params
+        return {"limit": self.limit}
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         return response.json() if len(response.content) > 0 else []
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
-        if len(response.content) > 0 and len(response.json()) == self.limit:
-            self.page = self.page + 1
-            return dict(page=self.page)
-        else:
+        if len(response.content) <= 0 or len(response.json()) != self.limit:
             return None
+        self.page = self.page + 1
+        return dict(page=self.page)
 
 
 class Channels(IncrementalBigcommerceStream):

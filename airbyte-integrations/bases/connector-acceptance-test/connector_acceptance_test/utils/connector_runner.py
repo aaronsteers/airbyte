@@ -64,7 +64,7 @@ class ConnectorRunner:
             with open(str(self.input_folder / "catalog.json"), "w") as outfile:
                 outfile.write(catalog.json())
 
-        volumes = {
+        return {
             str(self.input_folder): {
                 "bind": "/data",
                 # "mode": "ro",
@@ -74,32 +74,30 @@ class ConnectorRunner:
                 "mode": "rw",
             },
         }
-        return volumes
 
     def call_spec(self, **kwargs) -> List[AirbyteMessage]:
         cmd = "spec"
-        output = list(self.run(cmd=cmd, **kwargs))
-        return output
+        return list(self.run(cmd=cmd, **kwargs))
 
     def call_check(self, config, **kwargs) -> List[AirbyteMessage]:
         cmd = "check --config /data/tap_config.json"
-        output = list(self.run(cmd=cmd, config=config, **kwargs))
-        return output
+        return list(self.run(cmd=cmd, config=config, **kwargs))
 
     def call_discover(self, config, **kwargs) -> List[AirbyteMessage]:
         cmd = "discover --config /data/tap_config.json"
-        output = list(self.run(cmd=cmd, config=config, **kwargs))
-        return output
+        return list(self.run(cmd=cmd, config=config, **kwargs))
 
     def call_read(self, config, catalog, **kwargs) -> List[AirbyteMessage]:
         cmd = "read --config /data/tap_config.json --catalog /data/catalog.json"
-        output = list(self.run(cmd=cmd, config=config, catalog=catalog, **kwargs))
-        return output
+        return list(self.run(cmd=cmd, config=config, catalog=catalog, **kwargs))
 
     def call_read_with_state(self, config, catalog, state, **kwargs) -> List[AirbyteMessage]:
         cmd = "read --config /data/tap_config.json --catalog /data/catalog.json --state /data/state.json"
-        output = list(self.run(cmd=cmd, config=config, catalog=catalog, state=state, **kwargs))
-        return output
+        return list(
+            self.run(
+                cmd=cmd, config=config, catalog=catalog, state=state, **kwargs
+            )
+        )
 
     def run(self, cmd, config=None, state=None, catalog=None, raise_container_error: bool = True, **kwargs) -> Iterable[AirbyteMessage]:
 

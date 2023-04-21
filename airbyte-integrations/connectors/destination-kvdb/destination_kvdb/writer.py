@@ -32,7 +32,7 @@ class KvDbWriter:
             if len(keys_to_delete) == self.flush_interval:
                 self.client.delete(keys_to_delete)
                 keys_to_delete.clear()
-        if len(keys_to_delete) > 0:
+        if keys_to_delete:
             self.client.delete(keys_to_delete)
 
     def queue_write_operation(self, stream_name: str, record: Mapping, written_at: int):

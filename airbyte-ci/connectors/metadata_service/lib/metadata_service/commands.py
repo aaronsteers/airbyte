@@ -18,7 +18,7 @@ def metadata_service():
 @metadata_service.command(help="Validate a given metadata YAML file.")
 @click.argument("file_path", type=click.Path(exists=True, path_type=pathlib.Path))
 def validate(file_path: pathlib.Path):
-    file_path = file_path if not file_path.is_dir() else file_path / METADATA_FILE_NAME
+    file_path = file_path / METADATA_FILE_NAME if file_path.is_dir() else file_path
 
     click.echo(f"Validating {file_path}...")
 
@@ -38,7 +38,11 @@ def validate(file_path: pathlib.Path):
     "--service-account-file-path", "-sa", type=click.Path(exists=True, path_type=pathlib.Path), envvar="GOOGLE_APPLICATION_CREDENTIALS"
 )
 def upload(metadata_file_path: pathlib.Path, bucket_name: str, service_account_file_path: pathlib.Path):
-    metadata_file_path = metadata_file_path if not metadata_file_path.is_dir() else metadata_file_path / METADATA_FILE_NAME
+    metadata_file_path = (
+        metadata_file_path / METADATA_FILE_NAME
+        if metadata_file_path.is_dir()
+        else metadata_file_path
+    )
     try:
         uploaded, blob_id = upload_metadata_to_gcs(bucket_name, metadata_file_path, service_account_file_path)
     except (ValidationError, FileNotFoundError) as e:

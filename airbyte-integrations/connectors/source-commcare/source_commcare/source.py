@@ -40,8 +40,7 @@ class CommcareStream(HttpStream, ABC):
         return "%Y-%m-%dT%H:%M:%S.%f"
 
     def scrubUnwantedFields(self, form):
-        newform = {k: v for k, v in form.items() if not self.unwantedfields.match(k)}
-        return newform
+        return {k: v for k, v in form.items() if not self.unwantedfields.match(k)}
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
         try:
@@ -57,8 +56,7 @@ class CommcareStream(HttpStream, ABC):
         self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, any] = None, next_page_token: Mapping[str, Any] = None
     ) -> MutableMapping[str, Any]:
 
-        params = {"format": "json"}
-        return params
+        return {"format": "json"}
 
 
 class Application(CommcareStream):
@@ -80,8 +78,7 @@ class Application(CommcareStream):
         self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, any] = None, next_page_token: Mapping[str, Any] = None
     ) -> MutableMapping[str, Any]:
 
-        params = {"format": "json", "extras": "true"}
-        return params
+        return {"format": "json", "extras": "true"}
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         yield response.json()
@@ -114,9 +111,7 @@ class IncrementalStream(CommcareStream, IncrementalMixin):
             # raise an error if server returns an error
             response.raise_for_status()
             meta = response.json()["meta"]
-            if meta["next"]:
-                return parse_qs(meta["next"][1:])
-            return None
+            return parse_qs(meta["next"][1:]) if meta["next"] else None
         except Exception:
             return None
 
@@ -126,12 +121,11 @@ class IncrementalStream(CommcareStream, IncrementalMixin):
 
         params = {"format": "json"}
         if next_page_token:
-            params.update(next_page_token)
+            params |= next_page_token
         return params
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
-        for o in iter(response.json()["objects"]):
-            yield o
+        yield from iter(response.json()["objects"])
         return None
 
 
@@ -173,16 +167,12 @@ class Case(IncrementalStream):
         ix = self.state[self.cursor_field]
         params = {"format": "json", "indexed_on_start": ix.strftime(self.dateformat), "order_by": "indexed_on", "limit": "5000"}
         if next_page_token:
-            params.update(next_page_token)
+            params |= next_page_token
         return params
 
     def read_records(self, *args, **kwargs) -> Iterable[Mapping[str, Any]]:
         for record in super().read_records(*args, **kwargs):
-            found = False
-            for f in record["xform_ids"]:
-                if f in CommcareStream.forms:
-                    found = True
-                    break
+            found = any(f in CommcareStream.forms for f in record["xform_ids"])
             if found:
                 self._cursor_value = datetime.strptime(record[self.cursor_field], self.dateformat)
                 # Make indexed_on tz aware
@@ -191,8 +181,7 @@ class Case(IncrementalStream):
                 # one field per item. This is because some cases have up to 2000 xform_ids and we don't want 2000 extra
                 # fields in the schema
                 record["xform_ids"] = ",".join(record["xform_ids"])
-                frec = flatten(record)
-                yield frec
+                yield flatten(record)
         if self._cursor_value.microsecond == 0:
             # Airbyte converts the cursor_field value (datetime) to string when it saves the state and
             # our state setter parses the saved state with a format that contains microseconds
@@ -246,7 +235,7 @@ class Form(IncrementalStream):
             "xmlns": self.xmlns,
         }
         if next_page_token:
-            params.update(next_page_token)
+            params |= next_page_token
         return params
 
     def read_records(self, *args, **kwargs) -> Iterable[Mapping[str, Any]]:
@@ -271,9 +260,7 @@ class Form(IncrementalStream):
 # Source
 class SourceCommcare(AbstractSource):
     def check_connection(self, logger, config) -> Tuple[bool, any]:
-        if "api_key" not in config:
-            return False, None
-        return True, None
+        return (False, None) if "api_key" not in config else (True, None)
 
     def base_schema(self):
         return {
@@ -291,9 +278,7 @@ class SourceCommcare(AbstractSource):
             sync_mode=SyncMode.full_refresh
         )
 
-        # Generate streams for forms, one per xmlns and one stream for cases.
-        streams = self.generate_streams(args, config, appdata)
-        return streams
+        return self.generate_streams(args, config, appdata)
 
     def generate_streams(self, args, config, appdata):
         form_args = {"app_id": config["app_id"], "start_date": config["start_date"], "project_space": config["project_space"], **args}

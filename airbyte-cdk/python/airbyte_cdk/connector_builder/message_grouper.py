@@ -136,9 +136,8 @@ class MessageGrouper:
                 current_page_records.append(message.record.data)
                 records_count += 1
                 schema_inferrer.accumulate(message.record)
-        else:
-            self._close_page(current_page_request, current_page_response, current_slice_pages, current_page_records, validate_page_complete=not had_error)
-            yield StreamReadSlices(pages=current_slice_pages)
+        self._close_page(current_page_request, current_page_response, current_slice_pages, current_page_records, validate_page_complete=not had_error)
+        yield StreamReadSlices(pages=current_slice_pages)
 
     @staticmethod
     def _need_to_close_page(at_least_one_page_in_group: bool, message: AirbyteMessage) -> bool:
@@ -210,10 +209,7 @@ class MessageGrouper:
         if len(slices) >= self._max_slices:
             return True
 
-        for slice in slices:
-            if len(slice.pages) >= self._max_pages_per_slice:
-                return True
-        return False
+        return any(len(slice.pages) >= self._max_pages_per_slice for slice in slices)
 
     @classmethod
     def _create_configure_catalog(cls, stream_name: str) -> ConfiguredAirbyteCatalog:

@@ -60,7 +60,7 @@ def client_fixture(config) -> Client:
         time.sleep(0.2)
         task = client.get_task(resp["taskUid"])
         status = task["status"]
-        if status == "succeeded" or status == "failed":
+        if status in ["succeeded", "failed"]:
             break
     return client
 

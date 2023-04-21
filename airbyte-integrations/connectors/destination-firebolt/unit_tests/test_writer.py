@@ -110,12 +110,12 @@ def test_s3_data_auto_flush_one_table(mock_write: MagicMock, s3_writer: Firebolt
     mock_write.assert_called_once_with(table=ANY, root_path="dummy_bucket/airbyte_output/111_dummy-uuid/dummy", filesystem=s3_writer.fs)
     assert len(s3_writer._buffer.keys()) == 0
     assert s3_writer._values == 0
-    assert s3_writer._updated_tables == set(["dummy"])
+    assert s3_writer._updated_tables == {"dummy"}
     mock_write.reset_mock()
     s3_writer.queue_write_data("dummy", "id1", 20200101, '{"key": "value"}')
     mock_write.assert_not_called()
     assert len(s3_writer._buffer.keys()) == 1
-    assert s3_writer._updated_tables == set(["dummy"])
+    assert s3_writer._updated_tables == {"dummy"}
 
 
 @patch("pyarrow.parquet.write_to_dataset")
@@ -131,11 +131,11 @@ def test_s3_data_auto_flush_multi_tables(mock_write: MagicMock, s3_writer: Fireb
     ]
     assert len(s3_writer._buffer.keys()) == 0
     assert s3_writer._values == 0
-    assert s3_writer._updated_tables == set(["dummy", "dummy2"])
+    assert s3_writer._updated_tables == {"dummy", "dummy2"}
 
 
 def test_s3_final_flush(connection: MagicMock, s3_writer: FireboltS3Writer) -> None:
-    s3_writer._updated_tables = set(["dummy", "dummy2"])
+    s3_writer._updated_tables = {"dummy", "dummy2"}
     s3_writer.flush()
     assert len(connection.cursor.return_value.execute.mock_calls) == 8
     expected_url1 = "s3://dummy_bucket/airbyte_output/111_dummy-uuid/dummy"

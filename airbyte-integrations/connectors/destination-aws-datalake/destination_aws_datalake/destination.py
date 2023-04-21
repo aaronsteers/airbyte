@@ -25,12 +25,12 @@ RECORD_FLUSH_INTERVAL = 25000
 
 class DestinationAwsDatalake(Destination):
     def _flush_streams(self, streams: Dict[str, StreamWriter]) -> None:
-        for stream in streams:
-            streams[stream].flush()
+        for value in streams.values():
+            value.flush()
 
     @staticmethod
     def _get_random_string(length):
-        return "".join(random.choice(string.ascii_letters) for i in range(length))
+        return "".join(random.choice(string.ascii_letters) for _ in range(length))
 
     def write(
         self, config: Mapping[str, Any], configured_catalog: ConfiguredAirbyteCatalog, input_messages: Iterable[AirbyteMessage]
@@ -82,12 +82,15 @@ class DestinationAwsDatalake(Destination):
                             streams[stream].reset()
 
                 # Flush records when state is received
-                if message.state.stream:
-                    if message.state.stream.stream_state and hasattr(message.state.stream.stream_state, "stream_name"):
-                        stream_name = message.state.stream.stream_state.stream_name
-                        if stream_name in streams:
-                            logger.info(f"Got state message from source: flushing records for {stream_name}")
-                            streams[stream_name].flush(partial=True)
+                if (
+                    message.state.stream
+                    and message.state.stream.stream_state
+                    and hasattr(message.state.stream.stream_state, "stream_name")
+                ):
+                    stream_name = message.state.stream.stream_state.stream_name
+                    if stream_name in streams:
+                        logger.info(f"Got state message from source: flushing records for {stream_name}")
+                        streams[stream_name].flush(partial=True)
 
                 yield message
 

@@ -55,9 +55,8 @@ class CartStream(HttpStream, ABC):
         causes Server Error after a few attempts. Because of this was created the `server_backoff` variable to give time
         to server recover from too many requests.
         """
-        server_backoff = 3
-        retry_after = response.headers.get("Retry-After")
-        if retry_after:
+        if retry_after := response.headers.get("Retry-After"):
+            server_backoff = 3
             try:
                 return float(retry_after)
             except ValueError:
@@ -69,8 +68,7 @@ class CartStream(HttpStream, ABC):
 
         if response_json.get("next_page"):
             next_query_string = urllib.parse.urlsplit(response_json.get("next_page")).query
-            params = dict(urllib.parse.parse_qsl(next_query_string))
-            return params
+            return dict(urllib.parse.parse_qsl(next_query_string))
 
     def request_headers(self, **kwargs) -> Mapping[str, Any]:
         extra_params = {}
@@ -80,15 +78,14 @@ class CartStream(HttpStream, ABC):
 
     def parse_response(self, response: requests.Response, stream_state: Mapping[str, Any], **kwargs) -> Iterable[Mapping]:
         response_json = response.json()
-        result = response_json.get(self.data_field or self.name, [])
-        yield from result
+        yield from response_json.get(self.data_field or self.name, [])
 
     def request_params(
         self, stream_state: Mapping[str, Any], stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None
     ) -> MutableMapping[str, Any]:
         params = {"count": 1000}
         if next_page_token:
-            params.update(next_page_token)
+            params |= next_page_token
         return params
 
 
@@ -114,8 +111,7 @@ class IncrementalCartStream(CartStream, ABC):
         params[self.cursor_field] = query
 
         ord_params = ["count", "page", "sort", self.cursor_field]
-        ordered_params = {k: params[k] for k in ord_params if k in params}
-        return ordered_params
+        return {k: params[k] for k in ord_params if k in params}
 
     def get_updated_state(self, current_stream_state: MutableMapping[str, Any], latest_record: Mapping[str, Any]) -> Mapping[str, Any]:
         """
@@ -123,8 +119,10 @@ class IncrementalCartStream(CartStream, ABC):
         and returning an updated state object.
         """
         latest_state = latest_record.get(self.cursor_field)
-        current_state = current_stream_state.get(self.cursor_field) or latest_state
-        if current_state:
+        if (
+            current_state := current_stream_state.get(self.cursor_field)
+            or latest_state
+        ):
             return {self.cursor_field: max(latest_state, current_state)}
         return {}
 

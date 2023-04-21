@@ -291,10 +291,9 @@ def writer_existing_cumulio_columns(
     """This will return a CumulioWriter that mocks airbyte stream catalogs that contains the same columns as those existing in Cumul.io."""
     existing_cumulio_columns = {}
     for configured_stream in configured_catalog.streams:
-        existing_cumulio_columns[configured_stream.stream.name] = [
-            column_name
-            for column_name in configured_stream.stream.json_schema["properties"]
-        ]
+        existing_cumulio_columns[configured_stream.stream.name] = list(
+            configured_stream.stream.json_schema["properties"]
+        )
 
     def get_existing_cumulio_columns(stream_name):
         return existing_cumulio_columns[stream_name]
@@ -341,9 +340,10 @@ def test_queue_write_operation_with_correct_data_order(
 
     order_data = {"order_id": 1, "amount": 100.0, "customer_id": "cust_1"}
     writer_existing_cumulio_columns.queue_write_operation("orders", order_data)
-    expected_data = []
-    for column in result["orders"]["merged_columns"]:
-        expected_data.append(order_data[column["name"]])
+    expected_data = [
+        order_data[column["name"]]
+        for column in result["orders"]["merged_columns"]
+    ]
     assert (
         writer_existing_cumulio_columns.writers["orders"]["write_buffer"][0]
         == expected_data
@@ -398,10 +398,7 @@ def writer_new_airbyte_column(
     """This will return a CumulioWriter that mocks airbyte stream catalogs that contains one column that does not exist in Cumul.io."""
     existing_cumulio_columns = {}
     for configured_stream in configured_catalog_with_new_column.streams:
-        columns = [
-            column_name
-            for column_name in configured_stream.stream.json_schema["properties"]
-        ]
+        columns = list(configured_stream.stream.json_schema["properties"])
         # get rid of the second element to mimic a new column being defined in configured_stream
         del columns[1]
         existing_cumulio_columns[configured_stream.stream.name] = columns
@@ -496,10 +493,7 @@ def writer_deleted_airbyte_column(
     """This will return a CumulioWriter that mocks airbyte stream catalogs that doesn't contain one column that does exist in Cumul.io."""
     existing_cumulio_columns = {}
     for configured_stream in configured_catalog_with_deleted_column.streams:
-        columns = [
-            column_name
-            for column_name in configured_stream.stream.json_schema["properties"]
-        ]
+        columns = list(configured_stream.stream.json_schema["properties"])
         # Add customer_name column as second element to mimic a deleted column being defined in configured_stream
         columns.insert(1, "customer_name")
         existing_cumulio_columns[configured_stream.stream.name] = columns

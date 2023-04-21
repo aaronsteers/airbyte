@@ -29,13 +29,13 @@ class DestinationAmazonSqs(Destination):
         if message_body_key:
             data = record.data.get(message_body_key)
             if data is None:
-                raise Exception("Message had no attribute of the configured Message Body Key: " + message_body_key)
+                raise Exception(
+                    f"Message had no attribute of the configured Message Body Key: {message_body_key}"
+                )
         else:
             data = json.dumps(record.data)
 
-        message = {"MessageBody": data}
-
-        return message
+        return {"MessageBody": data}
 
     def add_attributes_to_message(self, record, message):
         attributes = {"airbyte_emitted_at": {"StringValue": str(record.emitted_at), "DataType": "String"}}
@@ -128,15 +128,19 @@ class DestinationAmazonSqs(Destination):
         try:
             # Required propeties
             queue_url = config["queue_url"]
-            logger.debug("Amazon SQS Destination Config Check - queue_url: " + queue_url)
+            logger.debug(f"Amazon SQS Destination Config Check - queue_url: {queue_url}")
             queue_region = config["region"]
-            logger.debug("Amazon SQS Destination Config Check - region: " + queue_region)
+            logger.debug(f"Amazon SQS Destination Config Check - region: {queue_region}")
 
             # Senstive Properties
             access_key = config["access_key"]
-            logger.debug("Amazon SQS Destination Config Check - access_key (ends with): " + access_key[-1])
+            logger.debug(
+                f"Amazon SQS Destination Config Check - access_key (ends with): {access_key[-1]}"
+            )
             secret_key = config["secret_key"]
-            logger.debug("Amazon SQS Destination Config Check - secret_key (ends with): " + secret_key[-1])
+            logger.debug(
+                f"Amazon SQS Destination Config Check - secret_key (ends with): {secret_key[-1]}"
+            )
 
             logger.debug("Amazon SQS Destination Config Check - Starting connection test ---")
             session = boto3.Session(aws_access_key_id=access_key, aws_secret_access_key=secret_key, region_name=queue_region)

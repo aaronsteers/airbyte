@@ -37,7 +37,7 @@ def setup_responses(
 
 def get_all_stream_records(stream):
     records = stream.read_records(SyncMode.full_refresh)
-    return [r for r in records]
+    return list(records)
 
 
 def get_stream_by_name(streams, stream_name):

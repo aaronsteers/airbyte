@@ -39,13 +39,7 @@ def test_request_params(stream):
 
 
 def test_next_page_token(stream):
-    expected_token = None
-    assert (
-        stream.next_page_token(
-            response=None,
-        )
-        == expected_token
-    )
+    assert stream.next_page_token(         response=None,     ) is None
 
 
 def test_parse_response(stream):
@@ -92,5 +86,4 @@ def test_should_retry(stream, http_status, should_retry):
 
 def test_backoff_time(stream):
     response_mock = MagicMock()
-    expected_backoff_time = None
-    assert stream.backoff_time(response_mock) == expected_backoff_time
+    assert stream.backoff_time(response_mock) is None

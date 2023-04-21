@@ -108,8 +108,7 @@ class AttributionReport(AmazonAdsStream):
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
         stream_data = response.json()
-        next_page_token = stream_data.get(self._next_page_token_field)
-        if next_page_token:
+        if next_page_token := stream_data.get(self._next_page_token_field):
             return {self._next_page_token_field: next_page_token}
 
     def path(self, **kvargs) -> str:

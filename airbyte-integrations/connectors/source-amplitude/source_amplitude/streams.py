@@ -88,12 +88,12 @@ class Events(HttpStream):
         """
         Get all properties from schema with format: 'date-time'
         """
-        result = []
         schema = self.get_json_schema()
-        for key, value in schema["properties"].items():
-            if value.get("format") == "date-time":
-                result.append(key)
-        return result
+        return [
+            key
+            for key, value in schema["properties"].items()
+            if value.get("format") == "date-time"
+        ]
 
     def _date_time_to_rfc3339(self, record: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         """
@@ -163,8 +163,9 @@ class Events(HttpStream):
         # https://developers.amplitude.com/docs/export-api#status-codes
         try:
             self.logger.info(f"Fetching {self.name} time range: {start.strftime('%Y-%m-%dT%H')} - {end.strftime('%Y-%m-%dT%H')}")
-            records = super().read_records(sync_mode, cursor_field, stream_slice, stream_state)
-            yield from records
+            yield from super().read_records(
+                sync_mode, cursor_field, stream_slice, stream_state
+            )
         except requests.exceptions.HTTPError as error:
             status = error.response.status_code
             if status in HTTP_ERROR_CODES.keys():

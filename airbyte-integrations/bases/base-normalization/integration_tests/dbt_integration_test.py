@@ -43,7 +43,7 @@ class DbtIntegrationTest(object):
 
     @staticmethod
     def random_string(length: int) -> str:
-        return "".join(random.choice(string.ascii_lowercase) for i in range(length))
+        return "".join(random.choice(string.ascii_lowercase) for _ in range(length))
 
     def set_target_schema(self, target_schema: str):
         self.target_schema = target_schema
@@ -391,7 +391,9 @@ class DbtIntegrationTest(object):
         elif destination_type.value == DestinationType.REDSHIFT.value:
             profiles_config["schema"] = self.target_schema
             if random_schema:
-                profiles_config["schema"] = self.target_schema + "_" + "".join(random.choices(string.ascii_lowercase, k=5))
+                profiles_config["schema"] = f"{self.target_schema}_" + "".join(
+                    random.choices(string.ascii_lowercase, k=5)
+                )
         else:
             profiles_config["schema"] = self.target_schema
         if destination_type.value == DestinationType.CLICKHOUSE.value:
@@ -561,21 +563,19 @@ class DbtIntegrationTest(object):
                 sys.stdout.write(str_line)
                 # keywords to match lines as signaling errors
                 if "ERROR" in str_line or "FAIL" in str_line or "WARNING" in str_line:
-                    # exception keywords in lines to ignore as errors (such as summary or expected warnings)
-                    is_exception = False
-                    for except_clause in [
-                        "Done.",  # DBT Summary
-                        "PASS=",  # DBT Summary
-                        "Nothing to do.",  # When no schema/data tests are setup
-                        "Configuration paths exist in your dbt_project.yml",  # When no cte / view are generated
-                        "Error loading config file: .dockercfg: $HOME is not defined",  # ignore warning
-                        "depends on a node named 'disabled_test' which was not found",  # Tests throwing warning because it is disabled
-                        "The requested image's platform (linux/amd64) does not match the detected host platform "
-                        + "(linux/arm64/v8) and no specific platform was requested",  # temporary patch until we publish images for arm64
-                    ]:
-                        if except_clause in str_line:
-                            is_exception = True
-                            break
+                    is_exception = any(
+                        except_clause in str_line
+                        for except_clause in [
+                            "Done.",
+                            "PASS=",
+                            "Nothing to do.",
+                            "Configuration paths exist in your dbt_project.yml",
+                            "Error loading config file: .dockercfg: $HOME is not defined",
+                            "depends on a node named 'disabled_test' which was not found",
+                            "The requested image's platform (linux/amd64) does not match the detected host platform "
+                            + "(linux/arm64/v8) and no specific platform was requested",
+                        ]
+                    )
                     if not is_exception:
                         # count lines signaling an error/failure/warning
                         error_count += 1
@@ -587,9 +587,7 @@ class DbtIntegrationTest(object):
         print(message)
         assert error_count == 0, message
         assert process.returncode == 0, message
-        if error_count > 0:
-            return False
-        return process.returncode == 0
+        return False if error_count > 0 else process.returncode == 0
 
     @staticmethod
     def copy_replace(src, dst, pattern=None, replace_value=None):
@@ -691,7 +689,7 @@ class DbtIntegrationTest(object):
             schemas_to_remove[destination.value] = []
 
             # based on test_type select path to source files
-            if test_type == "ephemeral" or test_type == "test_reset_scd_overwrite":
+            if test_type in {"ephemeral", "test_reset_scd_overwrite"}:
                 if not tmp_folders:
                     raise TypeError("`tmp_folders` arg is not provided.")
                 for folder in tmp_folders:
@@ -717,7 +715,6 @@ class DbtIntegrationTest(object):
                         source_yml = yaml.safe_load(source_file)
                 except FileNotFoundError:
                     print(f"\n{destination.value}: {file} doesn't exist, consider to remove any temp_tables and schemas manually!\n")
-                    pass
                 test_sources: list = source_yml.get("sources", []) if source_yml else []
 
                 for source in test_sources:

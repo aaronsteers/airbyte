@@ -74,15 +74,16 @@ python3 main_dev_transform_catalog.py \
 def read_profiles_yml(profile_dir: str) -> Any:
     with open(os.path.join(profile_dir, "profiles.yml"), "r") as file:
         config = yaml.load(file, Loader=yaml.FullLoader)
-        obj = config["normalize"]["outputs"]["prod"]
-        return obj
+        return config["normalize"]["outputs"]["prod"]
 
 
 def read_yaml_config(filename: str) -> Dict[str, Any]:
     with open(filename, "r") as fp:
         config = yaml.safe_load(fp)
     if not isinstance(config, dict):
-        raise RuntimeError("{} does not parse to a dictionary".format(os.path.basename(filename)))
+        raise RuntimeError(
+            f"{os.path.basename(filename)} does not parse to a dictionary"
+        )
     return config
 
 

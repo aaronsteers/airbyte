@@ -106,16 +106,15 @@ class ManifestReferenceResolver:
     def _evaluate_node(self, node: Any, manifest: Mapping[str, Any], visited: Set) -> Any:
         if isinstance(node, dict):
             evaluated_dict = {k: self._evaluate_node(v, manifest, visited) for k, v in node.items() if not self._is_ref_key(k)}
-            if REF_TAG in node:
-                # The node includes a $ref key, so we splat the referenced value(s) into the evaluated dict
-                evaluated_ref = self._evaluate_node(node[REF_TAG], manifest, visited)
-                if not isinstance(evaluated_ref, dict):
-                    return evaluated_ref
-                else:
-                    # The values defined on the component take precedence over the reference values
-                    return evaluated_ref | evaluated_dict
-            else:
+            if REF_TAG not in node:
                 return evaluated_dict
+            # The node includes a $ref key, so we splat the referenced value(s) into the evaluated dict
+            evaluated_ref = self._evaluate_node(node[REF_TAG], manifest, visited)
+            return (
+                evaluated_ref | evaluated_dict
+                if isinstance(evaluated_ref, dict)
+                else evaluated_ref
+            )
         elif isinstance(node, list):
             return [self._evaluate_node(v, manifest, visited) for v in node]
         elif self._is_ref(node):

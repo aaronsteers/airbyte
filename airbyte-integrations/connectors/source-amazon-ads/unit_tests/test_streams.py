@@ -67,7 +67,7 @@ def setup_responses(
 
 def get_all_stream_records(stream):
     records = stream.read_records(SyncMode.full_refresh)
-    return [r for r in records]
+    return list(records)
 
 
 def get_stream_by_name(streams, stream_name):
@@ -220,7 +220,7 @@ def test_streams_displays(
     schema = test_stream.get_json_schema()
     for r in records:
         validate(schema=schema, instance=r)
-    assert any([endpoint in call.request.url for call in responses.calls])
+    assert any(endpoint in call.request.url for call in responses.calls)
 
 
 @pytest.mark.parametrize(
@@ -247,4 +247,4 @@ def test_streams_brands_and_products(config, stream_name, endpoint, profiles_res
 
     records = get_all_stream_records(test_stream)
     assert records == []
-    assert any([endpoint in call.request.url for call in responses.calls])
+    assert any(endpoint in call.request.url for call in responses.calls)

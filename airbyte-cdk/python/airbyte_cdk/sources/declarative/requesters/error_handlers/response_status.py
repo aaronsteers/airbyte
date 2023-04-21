@@ -52,9 +52,11 @@ class ResponseStatus:
         return ResponseStatus(ResponseAction.RETRY, retry_in)
 
     def __eq__(self, other):
-        if not other:
-            return not self
-        return self.action == other.action and self.retry_in == other.retry_in
+        return (
+            self.action == other.action and self.retry_in == other.retry_in
+            if other
+            else not self
+        )
 
     def __hash__(self):
         return hash([self.action, self.retry_in])

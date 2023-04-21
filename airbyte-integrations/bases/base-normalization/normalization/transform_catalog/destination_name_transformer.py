@@ -130,19 +130,16 @@ class DestinationNameTransformer:
             suffix = input_name[1 - middle :]
             # Add extra characters '__', signaling a truncate in identifier
             print(f"Truncating {input_name} (#{len(input_name)}) to {prefix}_{suffix} (#{2 + len(prefix) + len(suffix)})")
-            mid = "__"
-            if conflict:
-                mid = f"_{conflict_level}"
+            mid = f"_{conflict_level}" if conflict else "__"
             input_name = f"{prefix}{mid}{suffix}"
 
         return input_name
 
     def get_name_max_length(self):
-        if self.destination_type.value in DESTINATION_SIZE_LIMITS:
-            destination_limit = DESTINATION_SIZE_LIMITS[self.destination_type.value]
-            return destination_limit - TRUNCATE_DBT_RESERVED_SIZE - TRUNCATE_RESERVED_SIZE
-        else:
+        if self.destination_type.value not in DESTINATION_SIZE_LIMITS:
             raise KeyError(f"Unknown destination type {self.destination_type}")
+        destination_limit = DESTINATION_SIZE_LIMITS[self.destination_type.value]
+        return destination_limit - TRUNCATE_DBT_RESERVED_SIZE - TRUNCATE_RESERVED_SIZE
 
     # Private methods
 
@@ -157,9 +154,9 @@ class DestinationNameTransformer:
         result = self.__normalize_identifier_case(result, is_quoted=False)
         if result[0].isdigit():
             if self.destination_type == DestinationType.MSSQL:
-                result = "_" + result
+                result = f"_{result}"
             elif self.destination_type == DestinationType.ORACLE:
-                result = "ab_" + result
+                result = f"ab_{result}"
         return result
 
     def __normalize_identifier_name(
@@ -173,11 +170,11 @@ class DestinationNameTransformer:
                 result = result.replace('"', "_")
                 result = result.replace("`", "_")
                 result = result.replace("'", "_")
-            elif (
-                self.destination_type.value != DestinationType.MYSQL.value
-                and self.destination_type.value != DestinationType.TIDB.value
-                and self.destination_type.value != DestinationType.DUCKDB.value
-            ):
+            elif self.destination_type.value not in [
+                DestinationType.MYSQL.value,
+                DestinationType.TIDB.value,
+                DestinationType.DUCKDB.value,
+            ]:
                 result = result.replace('"', '""')
             else:
                 result = result.replace("`", "_")
@@ -189,18 +186,16 @@ class DestinationNameTransformer:
             return result
         else:
             result = self.__normalize_identifier_case(result, is_quoted=False)
-        if in_jinja:
-            # to refer to columns while already in jinja context, always quote
-            return f"'{result}'"
-        return result
+        return f"'{result}'" if in_jinja else result
 
     def apply_quote(self, input: str, literal=True) -> str:
         if literal:
             input = f"'{input}'"
-        if self.destination_type == DestinationType.ORACLE:
+        if self.destination_type in [
+            DestinationType.ORACLE,
+            DestinationType.CLICKHOUSE,
+        ]:
             # Oracle dbt lib doesn't implemented adapter quote yet.
-            return f"quote({input})"
-        elif self.destination_type == DestinationType.CLICKHOUSE:
             return f"quote({input})"
         return f"adapter.quote({input})"
 
@@ -308,8 +303,7 @@ def transform_standard_naming(input_name: str) -> str:
 
 
 def transform_json_naming(input_name: str) -> str:
-    result = sub(r"['\"`]", "_", input_name)
-    return result
+    return sub(r"['\"`]", "_", input_name)
 
 
 def strip_accents(input_name: str) -> str:

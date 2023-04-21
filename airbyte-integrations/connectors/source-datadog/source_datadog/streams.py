@@ -43,13 +43,17 @@ class DatadogStream(HttpStream, ABC):
         params: Dict[str, str] = {}
 
         if next_page_token:
-            params.update(next_page_token)
+            params |= next_page_token
 
         return params
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         response_json = response.json()
-        records = response_json if not self.parse_response_root else response_json.get(self.parse_response_root, [])
+        records = (
+            response_json.get(self.parse_response_root, [])
+            if self.parse_response_root
+            else response_json
+        )
         for record in records:
             yield self.transform(record=record, **kwargs)
 
@@ -147,11 +151,14 @@ class IncrementalSearchableStream(V2ApiDatadogStream, IncrementalMixin, ABC):
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
         response_json = response.json()
-        cursor = response_json.get("meta", {}).get("page", {}).get("after", {})
-        if not cursor:
-            self._cursor_value = self.end_date
-        else:
+        if (
+            cursor := response_json.get("meta", {})
+            .get("page", {})
+            .get("after", {})
+        ):
             return self.get_payload(cursor)
+        else:
+            self._cursor_value = self.end_date
 
     def transform(self, record: MutableMapping[str, Any], stream_slice: Mapping[str, Any], **kwargs) -> MutableMapping[str, Any]:
         record[self.cursor_field] = self._cursor_value if self._cursor_value else self.end_date
@@ -227,9 +234,7 @@ class PaginatedBasedListStream(BasedListStream, ABC):
         stream_slice: Mapping[str, Any] = None,
         next_page_token: Mapping[str, Any] = None,
     ) -> str:
-        offset = None
-        if next_page_token:
-            offset = next_page_token.get("offset")
+        offset = next_page_token.get("offset") if next_page_token else None
         return self.get_url_path(offset)
 
     @abstractmethod
@@ -242,10 +247,7 @@ class PaginatedBasedListStream(BasedListStream, ABC):
         response_json = response.json()
         next_offset = response_json.get("meta", {}).get("pagination", {}).get("next_offset", -1)
         current_offset = response_json.get("meta", {}).get("pagination", {}).get("offset", -1)
-        next_page_token = None
-        if next_offset != current_offset:
-            next_page_token = {"offset": next_offset}
-        return next_page_token
+        return {"offset": next_offset} if next_offset != current_offset else None
 
 
 class Incidents(PaginatedBasedListStream):

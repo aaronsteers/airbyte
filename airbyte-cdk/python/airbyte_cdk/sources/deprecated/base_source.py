@@ -43,16 +43,17 @@ class BaseSource(Source):
         """Discover streams"""
         client = self._get_client(config)
 
-        return AirbyteCatalog(streams=[stream for stream in client.streams])
+        return AirbyteCatalog(streams=list(client.streams))
 
     def check(self, logger: logging.Logger, config: Mapping[str, Any]) -> AirbyteConnectionStatus:
         """Check connection"""
         client = self._get_client(config)
         alive, error = client.health_check()
-        if not alive:
-            return AirbyteConnectionStatus(status=Status.FAILED, message=str(error))
-
-        return AirbyteConnectionStatus(status=Status.SUCCEEDED)
+        return (
+            AirbyteConnectionStatus(status=Status.SUCCEEDED)
+            if alive
+            else AirbyteConnectionStatus(status=Status.FAILED, message=str(error))
+        )
 
     def read(
         self, logger: logging.Logger, config: Mapping[str, Any], catalog: ConfiguredAirbyteCatalog, state: MutableMapping[str, Any] = None

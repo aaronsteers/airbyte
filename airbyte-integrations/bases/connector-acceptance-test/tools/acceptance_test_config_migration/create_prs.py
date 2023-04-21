@@ -88,7 +88,9 @@ def open_pr(definition, new_branch, dry_run):
     if already_created:
         logging.warning(f"A PR was already created for this definition: {existing_prs[0]}")
     if not already_created:
-        if not dry_run:
+        if dry_run:
+            logging.info(f"[DRY RUN]: {' '.join(create_command_arguments)}")
+        else:
             process = subprocess.Popen(create_command_arguments, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             stdout, stderr = process.communicate()
             if stderr:
@@ -96,8 +98,6 @@ def open_pr(definition, new_branch, dry_run):
             else:
                 created_pr_url = stdout.decode()
                 logging.info(f"Created PR for {definition['name']}: {created_pr_url}")
-        else:
-            logging.info(f"[DRY RUN]: {' '.join(create_command_arguments)}")
     os.remove(pr_content["body_file"])
 
 

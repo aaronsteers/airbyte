@@ -39,11 +39,10 @@ class CustomFormatChecker(FormatChecker):
         return valid_format and valid_time
 
     def check(self, instance, format):
-        if instance is not None and format == "date-time":
-            if not self.check_datetime(instance):
-                raise FormatError(f"{instance} has invalid datetime format")
-        else:
+        if instance is None or format != "date-time":
             return super().check(instance, format)
+        if not self.check_datetime(instance):
+            raise FormatError(f"{instance} has invalid datetime format")
 
 
 def _enforce_no_additional_top_level_properties(json_schema: Dict[str, Any]):

@@ -194,9 +194,14 @@ class MockContainer:
 
 
 def binary_generator(lengths, last_line=None):
-    data = ""
-    for length in lengths:
-        data += "".join(random.choice(string.ascii_uppercase + string.digits) for _ in range(length)) + "\n"
+    data = "".join(
+        "".join(
+            random.choice(string.ascii_uppercase + string.digits)
+            for _ in range(length)
+        )
+        + "\n"
+        for length in lengths
+    )
     data = data.encode()
     chunk_size = random.randint(2, 32)
 
@@ -211,9 +216,14 @@ def binary_generator(lengths, last_line=None):
 def test_successful_logs_reading():
     line_count = 100
     line_lengths = [random.randint(0, 256) for _ in range(line_count)]
-    lines = [
-        line for line in ConnectorRunner.read(container=MockContainer(status={"StatusCode": 0}, iter_logs=binary_generator(line_lengths)))
-    ]
+    lines = list(
+        ConnectorRunner.read(
+            container=MockContainer(
+                status={"StatusCode": 0},
+                iter_logs=binary_generator(line_lengths),
+            )
+        )
+    )
     assert line_count == len(lines)
     for line, length in zip(lines, line_lengths):
         assert len(line) - 1 == length
@@ -288,7 +298,7 @@ def test_docker_runner(command, wait_timeout, expected_count):
     if wait_timeout:
         time.sleep(wait_timeout)
     lines = list(ConnectorRunner.read(new_container, command=command))
-    assert set(lines) == set(["something\n"])
+    assert set(lines) == {"something\n"}
     assert len(lines) == expected_count
 
     for container in client.containers.list(all=True, ignore_removed=True):

@@ -48,10 +48,7 @@ class SourceConvex(AbstractSource):
         :return Tuple[bool, any]: (True, None) if the input config can be used to connect to the API successfully, (False, error) otherwise.
         """
         resp = self._json_schemas(config)
-        if resp.status_code == 200:
-            return True, None
-        else:
-            return False, resp.text
+        return (True, None) if resp.status_code == 200 else (False, resp.text)
 
     def streams(self, config: ConvexConfig) -> List[Stream]:
         """
@@ -166,9 +163,8 @@ class ConvexStream(HttpStream, IncrementalMixin):
                 params["cursor"] = self._snapshot_cursor_value
             if self._delta_cursor_value:
                 params["snapshot"] = self._delta_cursor_value
-        else:
-            if self._delta_cursor_value:
-                params["cursor"] = self._delta_cursor_value
+        elif self._delta_cursor_value:
+            params["cursor"] = self._delta_cursor_value
         return params
 
     def get_updated_state(self, current_stream_state: ConvexState, latest_record: Mapping[str, Any]) -> ConvexState:

@@ -55,8 +55,7 @@ class GoogleSheetsWriter(WriteBufferMixin):
         """
 
         self.check_headers(stream_name)
-        values: list = self.records_buffer[stream_name] or []
-        if values:
+        if values := self.records_buffer[stream_name] or []:
             stream: Worksheet = self.spreadsheet.open_worksheet(stream_name)
             self.logger.info(f"Writing data for stream: {stream_name}")
             # we start from the cell of `A2` as starting range to fill the spreadsheet
@@ -83,9 +82,7 @@ class GoogleSheetsWriter(WriteBufferMixin):
         stream_name: str = configured_stream.stream.name
 
         stream: Worksheet = self.spreadsheet.open_worksheet(stream_name)
-        rows_to_remove: list = self.spreadsheet.find_duplicates(stream, primary_key)
-
-        if rows_to_remove:
+        if rows_to_remove := self.spreadsheet.find_duplicates(stream, primary_key):
             self.logger.info(f"Duplicated records are found for stream: {stream_name}, resolving...")
             self.spreadsheet.remove_duplicates(stream, rows_to_remove)
             self.logger.info(f"Finished deduplicating records for stream: {stream_name}")

@@ -57,5 +57,5 @@ class AzureTableStream(Stream):
                     record=AirbyteRecordMessage(stream=self.stream_name, data=row, emitted_at=int(datetime.now().timestamp()) * 1000),
                 )
 
-            if len(list(rows)) > 0:
+            if list(rows):
                 self._update_state(latest_cursor=row[cursor_field])

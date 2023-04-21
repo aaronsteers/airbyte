@@ -69,12 +69,11 @@ def test_init_buffer_stream(buffer, stream_name):
 
 def test_add_to_buffer(input_messages=read_input_messages(TEST_RECORDS_PATH)):
     for message in input_messages:
-        if message.type == Type.RECORD:
-            record = message.record
-            TEST_WRITE_BUFFER.add_to_buffer(record.stream, record.data)
-        else:
+        if message.type != Type.RECORD:
             continue
 
+        record = message.record
+        TEST_WRITE_BUFFER.add_to_buffer(record.stream, record.data)
     for stream in TEST_WRITE_BUFFER.records_buffer:
         assert len(TEST_WRITE_BUFFER.records_buffer[stream]) > 0
 

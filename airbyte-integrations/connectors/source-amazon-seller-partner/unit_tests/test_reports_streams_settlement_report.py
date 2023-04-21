@@ -105,7 +105,7 @@ def test_stream_slices_method(mocker, settlement_reports_stream):
     response = requests.Response()
     mocker.patch.object(response, "json", return_value=generated_reports_from_amazon)
 
-    data = response.json().get("payload", list())
+    data = response.json().get("payload", [])
 
     slices = [{"report_id": e.get("reportId")} for e in data]
 

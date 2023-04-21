@@ -18,9 +18,13 @@ def get_client(config: Mapping[str, Any]) -> Client:
     port = config.get("port") or "8108"
     protocol = config.get("protocol") or "https"
 
-    client = Client({"api_key": api_key, "nodes": [{"host": host, "port": port, "protocol": protocol}], "connection_timeout_seconds": 2})
-
-    return client
+    return Client(
+        {
+            "api_key": api_key,
+            "nodes": [{"host": host, "port": port, "protocol": protocol}],
+            "connection_timeout_seconds": 2,
+        }
+    )
 
 
 class DestinationTypesense(Destination):

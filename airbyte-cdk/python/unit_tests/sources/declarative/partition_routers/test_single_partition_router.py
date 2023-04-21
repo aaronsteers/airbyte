@@ -11,4 +11,4 @@ def test():
 
     stream_slices = iterator.stream_slices(SyncMode.incremental, None)
     next_slice = next(stream_slices)
-    assert next_slice == dict()
+    assert next_slice == {}

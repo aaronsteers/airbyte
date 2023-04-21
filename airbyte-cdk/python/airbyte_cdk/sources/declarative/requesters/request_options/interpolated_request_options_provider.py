@@ -66,9 +66,7 @@ class InterpolatedRequestOptionsProvider(RequestOptionsProvider):
         next_page_token: Optional[Mapping[str, Any]] = None,
     ) -> MutableMapping[str, Any]:
         interpolated_value = self._parameter_interpolator.eval_request_inputs(stream_state, stream_slice, next_page_token)
-        if isinstance(interpolated_value, dict):
-            return interpolated_value
-        return {}
+        return interpolated_value if isinstance(interpolated_value, dict) else {}
 
     def get_request_headers(
         self,

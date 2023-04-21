@@ -47,9 +47,8 @@ class OffsetIncrement(PaginationStrategy):
     def next_page_token(self, response: requests.Response, last_records: List[Mapping[str, Any]]) -> Optional[Any]:
         if len(last_records) < self._page_size.eval(self.config):
             return None
-        else:
-            self._offset += len(last_records)
-            return self._offset
+        self._offset += len(last_records)
+        return self._offset
 
     def reset(self):
         self._offset = 0

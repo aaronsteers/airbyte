@@ -37,11 +37,7 @@ class HttpStream(Stream, ABC):
 
     # TODO: remove legacy HttpAuthenticator authenticator references
     def __init__(self, authenticator: Union[AuthBase, HttpAuthenticator] = None):
-        if self.use_cache:
-            self._session = self.request_cache()
-        else:
-            self._session = requests.Session()
-
+        self._session = self.request_cache() if self.use_cache else requests.Session()
         self._authenticator: HttpAuthenticator = NoAuth()
         if isinstance(authenticator, AuthBase):
             self._session.auth = authenticator

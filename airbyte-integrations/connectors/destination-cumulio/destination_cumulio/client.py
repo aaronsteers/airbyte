@@ -45,7 +45,9 @@ class CumulioClient:
         update_metadata: bool,
     ):
         """Write a list of data (array of arrays) in a specific sync mode to Cumul.io."""
-        if len(write_buffer) == 0 or (len(write_buffer) == 1 and len(write_buffer[0]) == 0):
+        if not write_buffer or (
+            len(write_buffer) == 1 and len(write_buffer[0]) == 0
+        ):
             return
 
         dataset_id = self._get_dataset_id_from_stream_name(stream_name)
@@ -291,7 +293,7 @@ class CumulioClient:
                 ],
             },
         )
-        return False if result["count"] == 0 else True
+        return result["count"] != 0
 
     def _remove_replace_tag_dataset_id_association(self, dataset_id: str):
         """Remove the "replace" tag from a specific dataset."""
@@ -349,9 +351,7 @@ class CumulioClient:
     def _get_tag_id(self, tag_name: str):
         """Return a Tag ID using the stream name."""
         result = self.client.get("tag", {"where": {"tag": self.TAG_PREFIX + tag_name}})
-        if result["count"] == 0:
-            return None
-        return result["rows"][0]["id"]
+        return None if result["count"] == 0 else result["rows"][0]["id"]
 
     def _associate_tag_with_dataset_id(self, tag_id: str, dataset_id: str):
         return self.client.associate("tag", tag_id, "Securables", dataset_id)

@@ -169,14 +169,12 @@ def test_incremental_two_sequential_reads(
             *build_messages_from_record_data("test_stream", records1),
             build_per_stream_state_message(descriptor=StreamDescriptor(name="test_stream"), stream_state={"date": latest_state}),
         ]
-        call_read_with_state_output_messages = build_messages_from_record_data("test_stream", records2)
     else:
         call_read_output_messages = [
             *build_messages_from_record_data("test_stream", records1),
             build_state_message({"date": latest_state}),
         ]
-        call_read_with_state_output_messages = build_messages_from_record_data("test_stream", records2)
-
+    call_read_with_state_output_messages = build_messages_from_record_data("test_stream", records2)
     docker_runner_mock = MagicMock()
     docker_runner_mock.call_read.return_value = call_read_output_messages
     docker_runner_mock.call_read_with_state.return_value = call_read_with_state_output_messages
@@ -258,8 +256,7 @@ def test_incremental_two_sequential_reads_state_invalid(
             build_per_stream_state_message(descriptor=StreamDescriptor(name=stream_name), stream_state=latest_state),
         ]
     else:
-        stream_state = dict()
-        stream_state[stream_name] = latest_state
+        stream_state = {stream_name: latest_state}
         call_read_output_messages = [
             *build_messages_from_record_data(stream_name, records1),
             build_state_message(stream_state),

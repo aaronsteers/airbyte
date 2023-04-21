@@ -9,11 +9,10 @@ T = TypeVar("T")
 
 
 def are_values_equal(value_1: any, value_2: any) -> bool:
-    if isinstance(value_1, dict) and isinstance(value_2, dict):
-        diff = DeepDiff(value_1, value_2, ignore_order=True)
-        return len(diff) == 0
-    else:
+    if not isinstance(value_1, dict) or not isinstance(value_2, dict):
         return value_1 == value_2
+    diff = DeepDiff(value_1, value_2, ignore_order=True)
+    return len(diff) == 0
 
 
 def merge_values(old_value: T, new_value: T) -> T:

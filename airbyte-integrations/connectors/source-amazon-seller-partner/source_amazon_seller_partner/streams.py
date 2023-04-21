@@ -106,7 +106,7 @@ class IncrementalAmazonSPStream(AmazonSPStream, ABC):
 
         if self._replication_start_date and self.cursor_field:
             start_date = max(stream_state.get(self.cursor_field, self._replication_start_date), self._replication_start_date)
-            params.update({self.replication_start_date_field: start_date})
+            params[self.replication_start_date_field] = start_date
 
         if self._replication_end_date:
             params[self.replication_end_date_field] = self._replication_end_date
@@ -115,8 +115,9 @@ class IncrementalAmazonSPStream(AmazonSPStream, ABC):
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
         stream_data = response.json()
-        next_page_token = stream_data.get("payload").get(self.next_page_token_field)
-        if next_page_token:
+        if next_page_token := stream_data.get("payload").get(
+            self.next_page_token_field
+        ):
             return {self.next_page_token_field: next_page_token}
 
     def parse_response(
@@ -244,7 +245,7 @@ class ReportsAmazonSPStream(Stream, ABC):
         params = {"reportType": self.name, "marketplaceIds": [self.marketplace_id], **(stream_slice or {})}
         options = self.report_options()
         if options is not None:
-            params.update({"reportOptions": options})
+            params["reportOptions"] = options
         return params
 
     def _create_report(
@@ -272,9 +273,7 @@ class ReportsAmazonSPStream(Stream, ABC):
             headers=dict(request_headers, **self.authenticator.get_auth_header()),
         )
         retrieve_report_response = self._send_request(retrieve_report_request)
-        report_payload = retrieve_report_response.json()
-
-        return report_payload
+        return retrieve_report_response.json()
 
     def decompress_report_document(self, url, payload):
         """
@@ -292,8 +291,7 @@ class ReportsAmazonSPStream(Stream, ABC):
 
         document = self.decompress_report_document(payload.get("url"), payload)
 
-        document_records = self.parse_document(document)
-        yield from document_records
+        yield from self.parse_document(document)
 
     def parse_document(self, document):
         return csv.DictReader(StringIO(document), delimiter="\t")
@@ -516,9 +514,7 @@ class XmlAllOrdersDataByOrderDataGeneral(ReportsAmazonSPStream):
         orders = parsed.get("AmazonEnvelope", {}).get("Message", [])
         result = []
         if isinstance(orders, list):
-            for order in orders:
-                result.append(order.get("Order", {}))
-
+            result.extend(order.get("Order", {}) for order in orders)
         return result
 
     name = "GET_XML_ALL_ORDERS_DATA_BY_ORDER_DATE_GENERAL"
@@ -784,8 +780,7 @@ class Orders(IncrementalAmazonSPStream):
         yield from response.json().get(self.data_field, {}).get(self.name, [])
 
     def backoff_time(self, response: requests.Response) -> Optional[float]:
-        rate_limit = response.headers.get("x-amzn-RateLimit-Limit", 0)
-        if rate_limit:
+        if rate_limit := response.headers.get("x-amzn-RateLimit-Limit", 0):
             return 1 / float(rate_limit)
         else:
             return self.default_backoff_time
@@ -1000,22 +995,21 @@ class FinanceStream(AmazonSPStream, ABC):
         # logging to make sure user knows taken start date
         logger.info("start date used: %s", start_date)
 
-        params = {
+        return {
             self.replication_start_date_field: start_date,
             self.replication_end_date_field: end_date,
             self.page_size_field: self.page_size,
         }
-        return params
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
         stream_data = response.json()
-        next_page_token = stream_data.get("payload").get(self.next_page_token_field)
-        if next_page_token:
+        if next_page_token := stream_data.get("payload").get(
+            self.next_page_token_field
+        ):
             return {self.next_page_token_field: next_page_token}
 
     def backoff_time(self, response: requests.Response) -> Optional[float]:
-        rate_limit = response.headers.get("x-amzn-RateLimit-Limit", 0)
-        if rate_limit:
+        if rate_limit := response.headers.get("x-amzn-RateLimit-Limit", 0):
             return 1 / float(rate_limit)
         else:
             return self.default_backoff_time
@@ -1101,7 +1095,7 @@ class FlatFileSettlementV2Reports(ReportsAmazonSPStream):
             "createdSince": create_date.strftime(DATE_TIME_FORMAT),
             "createdUntil": end_date.strftime(DATE_TIME_FORMAT),
         }
-        unique_records = list()
+        unique_records = []
         complete = False
 
         while not complete:
@@ -1115,13 +1109,10 @@ class FlatFileSettlementV2Reports(ReportsAmazonSPStream):
             )
             report_response = self._send_request(get_reports)
             response = report_response.json()
-            data = response.get("reports", list())
+            data = response.get("reports", [])
             records = [e.get("reportId") for e in data if e and e.get("reportId") not in unique_records]
             unique_records += records
-            reports = [{"report_id": report_id} for report_id in records]
-
-            yield from reports
-
+            yield from [{"report_id": report_id} for report_id in records]
             next_value = response.get("nextToken", None)
             params = {"nextToken": next_value}
             if not next_value:

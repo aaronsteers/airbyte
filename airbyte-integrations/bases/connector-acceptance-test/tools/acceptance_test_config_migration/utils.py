@@ -56,11 +56,11 @@ def add_connectors_param(parser: argparse.ArgumentParser):
 
 
 def get_valid_definitions_from_args(args):
-    if not args.connectors:
-        requested_defintions = definitions.ALL_DEFINITIONS
-    else:
-        requested_defintions = definitions.find_by_name(args.connectors)
-
+    requested_defintions = (
+        definitions.find_by_name(args.connectors)
+        if args.connectors
+        else definitions.ALL_DEFINITIONS
+    )
     valid_definitions = []
     for definition in requested_defintions:
         connector_technical_name = definitions.get_airbyte_connector_name_from_definition(definition)

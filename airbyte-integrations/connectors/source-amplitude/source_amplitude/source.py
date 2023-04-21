@@ -26,8 +26,7 @@ class SourceAmplitude(YamlDeclarativeSource):
     def _convert_auth_to_token(self, username: str, password: str) -> str:
         username = username.encode("latin1")
         password = password.encode("latin1")
-        token = b64encode(b":".join((username, password))).strip().decode("ascii")
-        return token
+        return b64encode(b":".join((username, password))).strip().decode("ascii")
 
     def streams(self, config: Mapping[str, Any]) -> List[Stream]:
         streams = super().streams(config=config)

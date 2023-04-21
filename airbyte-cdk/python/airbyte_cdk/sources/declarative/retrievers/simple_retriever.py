@@ -158,12 +158,11 @@ class SimpleRetriever(Retriever, HttpStream):
         stream_slicer_mapping = stream_slicer_method(stream_slice=stream_slice)
         stream_slicer_mapping_keys = set(stream_slicer_mapping.keys())
 
-        intersection = (
+        if intersection := (
             (requester_mapping_keys & paginator_mapping_keys)
             | (requester_mapping_keys & stream_slicer_mapping_keys)
             | (paginator_mapping_keys & stream_slicer_mapping_keys)
-        )
-        if intersection:
+        ):
             raise ValueError(f"Duplicate keys found: {intersection}")
         return {**requester_mapping, **paginator_mapping, **stream_slicer_mapping}
 
@@ -222,8 +221,7 @@ class SimpleRetriever(Retriever, HttpStream):
             stream_state=self.state, stream_slice=stream_slice, next_page_token=next_page_token
         )
         if isinstance(base_body_data, str):
-            paginator_body_data = self.paginator.get_request_body_data()
-            if paginator_body_data:
+            if paginator_body_data := self.paginator.get_request_body_data():
                 raise ValueError(
                     f"Cannot combine requester's body data= {base_body_data} with paginator's body_data: {paginator_body_data}"
                 )
@@ -286,9 +284,7 @@ class SimpleRetriever(Retriever, HttpStream):
         :param next_page_token:
         :return:
         """
-        # Warning: use self.state instead of the stream_state passed as argument!
-        paginator_path = self.paginator.path()
-        if paginator_path:
+        if paginator_path := self.paginator.path():
             return paginator_path
         else:
             return self.requester.get_path(stream_state=self.state, stream_slice=stream_slice, next_page_token=next_page_token)
@@ -464,15 +460,14 @@ def _prepared_request_to_airbyte_message(request: requests.PreparedRequest) -> A
 
 
 def _body_binary_string_to_dict(body_str: str) -> Optional[Mapping[str, str]]:
-    if body_str:
-        if isinstance(body_str, (bytes, bytearray)):
-            body_str = body_str.decode()
-        try:
-            return json.loads(body_str)
-        except JSONDecodeError:
-            return {k: v for k, v in [s.split("=") for s in body_str.split("&")]}
-    else:
+    if not body_str:
         return None
+    if isinstance(body_str, (bytes, bytearray)):
+        body_str = body_str.decode()
+    try:
+        return json.loads(body_str)
+    except JSONDecodeError:
+        return dict([s.split("=") for s in body_str.split("&")])
 
 
 def _response_to_airbyte_message(response: requests.Response) -> AirbyteMessage:

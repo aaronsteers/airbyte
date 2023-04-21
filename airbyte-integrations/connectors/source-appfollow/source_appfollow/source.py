@@ -42,8 +42,7 @@ class AppfollowStream(HttpStream, ABC):
         """
         :return an iterable containing each record in the response
         """
-        response_json = response.json()
-        yield response_json
+        yield response.json()
 
 
 class Ratings(AppfollowStream):

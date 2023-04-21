@@ -15,12 +15,7 @@ from airbyte_cdk.sources.utils.schema_helpers import ResourceSchemaLoader
 
 
 def _default_file_path() -> str:
-    # Schema files are always in "source_<connector_name>/schemas/<stream_name>.json
-    # The connector's module name can be inferred by looking at the modules loaded and look for the one starting with source_
-    source_modules = [
-        k for k, v in sys.modules.items() if "source_" in k
-    ]  # example: ['source_exchange_rates', 'source_exchange_rates.source']
-    if source_modules:
+    if source_modules := [k for k, v in sys.modules.items() if "source_" in k]:
         module = source_modules[0].split(".")[0]
         return f"./{module}/schemas/{{{{parameters['name']}}}}.json"
 
@@ -80,7 +75,7 @@ class JsonFileSchemaLoader(ResourceSchemaLoader, SchemaLoader):
         """
         split_path = json_schema_path.split("/")
 
-        if split_path[0] == "" or split_path[0] == ".":
+        if split_path[0] in ["", "."]:
             split_path = split_path[1:]
 
         if len(split_path) == 0:

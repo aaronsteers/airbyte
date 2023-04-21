@@ -80,9 +80,11 @@ class AbstractSource(Source, ABC):
         See https://docs.airbyte.com/understanding-airbyte/airbyte-protocol/#check.
         """
         check_succeeded, error = self.check_connection(logger, config)
-        if not check_succeeded:
-            return AirbyteConnectionStatus(status=Status.FAILED, message=repr(error))
-        return AirbyteConnectionStatus(status=Status.SUCCEEDED)
+        return (
+            AirbyteConnectionStatus(status=Status.SUCCEEDED)
+            if check_succeeded
+            else AirbyteConnectionStatus(status=Status.FAILED, message=repr(error))
+        )
 
     def read(
         self,
@@ -124,8 +126,9 @@ class AbstractSource(Source, ABC):
                     raise e
                 except Exception as e:
                     logger.exception(f"Encountered an exception while reading stream {configured_stream.stream.name}")
-                    display_message = stream_instance.get_error_display_message(e)
-                    if display_message:
+                    if display_message := stream_instance.get_error_display_message(
+                        e
+                    ):
                         raise AirbyteTracedException.from_exception(e, message=display_message) from e
                     raise e
                 finally:
@@ -197,10 +200,7 @@ class AbstractSource(Source, ABC):
         :records_counter - number of records already red
         :return True if limit reached, False otherwise
         """
-        if internal_config.limit:
-            if records_counter >= internal_config.limit:
-                return True
-        return False
+        return bool(internal_config.limit and records_counter >= internal_config.limit)
 
     def _read_incremental(
         self,
@@ -273,9 +273,7 @@ class AbstractSource(Source, ABC):
                 return
 
         if not has_slices:
-            # Safety net to ensure we always emit at least one state message even if there are no slices
-            checkpoint = self._checkpoint_state(stream_instance, stream_state, state_manager)
-            yield checkpoint
+            yield self._checkpoint_state(stream_instance, stream_state, state_manager)
 
     def should_log_slice_message(self, logger: logging.Logger):
         """

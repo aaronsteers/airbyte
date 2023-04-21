@@ -56,15 +56,26 @@ def test_merged_registry_dataframes(oss_registry_dict, cloud_registry_dict):
     )
 
     # assert that all_sources_df has a entry for each sourceDefinitionId in the cloud registry and oss registry
-    oss_source_definition_ids = set([source["sourceDefinitionId"] for source in oss_registry_dict["sources"]])
-    cloud_source_definition_ids = set([source["sourceDefinitionId"] for source in cloud_registry_dict["sources"]])
+    oss_source_definition_ids = {
+        source["sourceDefinitionId"] for source in oss_registry_dict["sources"]
+    }
+    cloud_source_definition_ids = {
+        source["sourceDefinitionId"]
+        for source in cloud_registry_dict["sources"]
+    }
     all_source_definition_ids = set(all_sources_df["sourceDefinitionId"])
 
     assert all_source_definition_ids == oss_source_definition_ids.union(cloud_source_definition_ids)
 
     # assert that all_destinations_df has a entry for each sourceDefinitionId in the cloud registry and oss registry
-    oss_destination_definition_ids = set([destination["destinationDefinitionId"] for destination in oss_registry_dict["destinations"]])
-    cloud_destination_definition_ids = set([destination["destinationDefinitionId"] for destination in cloud_registry_dict["destinations"]])
+    oss_destination_definition_ids = {
+        destination["destinationDefinitionId"]
+        for destination in oss_registry_dict["destinations"]
+    }
+    cloud_destination_definition_ids = {
+        destination["destinationDefinitionId"]
+        for destination in cloud_registry_dict["destinations"]
+    }
     all_destination_definition_ids = set(all_destinations_df["destinationDefinitionId"])
 
     assert all_destination_definition_ids == oss_destination_definition_ids.union(cloud_destination_definition_ids)

@@ -40,7 +40,7 @@ def test_delete_stream_entries():
 
 def test_check_headers():
     TEST_WRITER.check_headers(TEST_STREAM)
-    assert True if TEST_WRITER.stream_info[TEST_STREAM]["is_set"] else False
+    assert bool(TEST_WRITER.stream_info[TEST_STREAM]["is_set"])
 
 
 # define input records

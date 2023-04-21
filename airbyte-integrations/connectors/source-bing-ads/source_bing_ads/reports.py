@@ -307,11 +307,10 @@ class ReportsMixin(ABC):
             elif REPORT_FIELD_TYPES[column] == "number":
                 if value == "--":
                     value = 0.0
+                elif "%" in value:
+                    value = float(value.replace("%", "").replace(",", "")) / 100
                 else:
-                    if "%" in value:
-                        value = float(value.replace("%", "").replace(",", "")) / 100
-                    else:
-                        value = float(value.replace(",", ""))
+                    value = float(value.replace(",", ""))
 
         return value
 
@@ -321,11 +320,10 @@ class ReportsMixin(ABC):
         """
         if not self.report_aggregation:
             date = pendulum.from_format(datestring, "M/D/YYYY")
+        elif self.report_aggregation == "Hourly":
+            date = pendulum.from_format(datestring, "YYYY-MM-DD|H")
         else:
-            if self.report_aggregation == "Hourly":
-                date = pendulum.from_format(datestring, "YYYY-MM-DD|H")
-            else:
-                date = pendulum.parse(datestring)
+            date = pendulum.parse(datestring)
 
         return date.int_timestamp
 

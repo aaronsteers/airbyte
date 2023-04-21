@@ -93,7 +93,7 @@ class Client:
         """
         token_total_lifetime: timedelta = datetime.utcnow() - self.oauth.access_token_received_datetime
         token_updated_expires_in: int = self.oauth.access_token_expires_in_seconds - token_total_lifetime.seconds
-        return False if token_updated_expires_in > self.refresh_token_safe_delta else True
+        return token_updated_expires_in <= self.refresh_token_safe_delta
 
     def should_retry(self, error: WebFault) -> bool:
         if isinstance(error, URLError) and isinstance(error.reason, socket.timeout):

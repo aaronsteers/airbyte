@@ -172,10 +172,14 @@ class TestSpec(BaseTest):
             common_props = set.intersection(*variant_props)
             assert common_props, f"There should be at least one common property for {oneof_path} subobjects. {docs_msg}"
 
-            const_common_props = set()
-            for common_prop in common_props:
-                if all(["const" in variant["properties"][common_prop] for variant in variants]):
-                    const_common_props.add(common_prop)
+            const_common_props = {
+                common_prop
+                for common_prop in common_props
+                if all(
+                    "const" in variant["properties"][common_prop]
+                    for variant in variants
+                )
+            }
             assert (
                 len(const_common_props) == 1
             ), f"There should be exactly one common property with 'const' keyword for {oneof_path} subobjects. {docs_msg}"
@@ -213,11 +217,14 @@ class TestSpec(BaseTest):
         properties/credentials/oneOf/1/properties/api_key/type -> [api_key, properties, 1, oneOf, credentials, properties] -> api_key
         """
         reserved_keywords = ("anyOf", "oneOf", "allOf", "not", "properties", "items", "type", "prefixItems")
-        for part in reversed(path.split("/")[:-1]):
-            if part.isdigit() or part in reserved_keywords:
-                continue
-            return part, part.lower() in secret_property_names
-        return None, False
+        return next(
+            (
+                (part, part.lower() in secret_property_names)
+                for part in reversed(path.split("/")[:-1])
+                if not part.isdigit() and part not in reserved_keywords
+            ),
+            (None, False),
+        )
 
     @staticmethod
     def _property_can_store_secret(prop: dict) -> bool:
@@ -237,10 +244,7 @@ class TestSpec(BaseTest):
                 isinstance(type_, list) and (set(type_) & unsecure_types),
             ]
         )
-        if not can_store_secret:
-            return False
-        # if a property can store a secret, additional check should be done if it's a constant value
-        return not is_property_constant_value
+        return not is_property_constant_value if can_store_secret else False
 
     def test_secret_is_properly_marked(self, connector_spec_dict: dict, detailed_logger, secret_property_names):
         """
@@ -280,7 +284,7 @@ class TestSpec(BaseTest):
             )
 
     def _fail_on_errors(self, errors: List[str]):
-        if len(errors) > 0:
+        if errors:
             pytest.fail("\n".join(errors))
 
     def test_property_type_is_not_array(self, connector_spec: ConnectorSpecification):
@@ -291,7 +295,7 @@ class TestSpec(BaseTest):
         for type_path, type_value in dpath.util.search(connector_spec.connectionSpecification, "**/properties/*/type", yielded=True):
             if isinstance(type_value, List):
                 number_of_types = len(type_value)
-                if number_of_types != 2 and number_of_types != 1:
+                if number_of_types not in [2, 1]:
                     errors.append(
                         f"{type_path} is not either a simple type or an array of a simple type plus null: {type_value} (for example: type: [string, null])"
                     )
@@ -366,7 +370,7 @@ class TestSpec(BaseTest):
             for path, _value in dpath.util.search(connector_spec.connectionSpecification, f"**/properties/{forbidden_key}", yielded=True):
                 found_keys.remove(path)
 
-        if len(found_keys) > 0:
+        if found_keys:
             key_list = ", ".join(found_keys)
             pytest.fail(f"Found the following disallowed JSON schema features: {key_list}")
 
@@ -382,11 +386,11 @@ class TestSpec(BaseTest):
                 continue
             property_definition = schema_helper.get_parent(format_path)
             pattern = property_definition.get("pattern")
-            if format == "date" and not pattern == DATE_PATTERN:
+            if format == "date" and pattern != DATE_PATTERN:
                 detailed_logger.warning(
                     f"{format_path} is defining a date format without the corresponding pattern. Consider setting the pattern to {DATE_PATTERN} to make it easier for users to edit this field in the UI."
                 )
-            if format == "date-time" and not pattern == DATETIME_PATTERN:
+            if format == "date-time" and pattern != DATETIME_PATTERN:
                 detailed_logger.warning(
                     f"{format_path} is defining a date-time format without the corresponding pattern Consider setting the pattern to {DATETIME_PATTERN} to make it easier for users to edit this field in the UI."
                 )
@@ -400,17 +404,17 @@ class TestSpec(BaseTest):
             if not isinstance(pattern, str):
                 # pattern is not a pattern definition here but a property named pattern
                 continue
-            if pattern == DATE_PATTERN or pattern == DATETIME_PATTERN:
+            if pattern in [DATE_PATTERN, DATETIME_PATTERN]:
                 property_definition = schema_helper.get_parent(pattern_path)
                 format = property_definition.get("format")
-                if not format == "date" and pattern == DATE_PATTERN:
-                    detailed_logger.warning(
-                        f"{pattern_path} is defining a pattern that looks like a date without setting the format to `date`. Consider specifying the format to make it easier for users to edit this field in the UI."
-                    )
-                if not format == "date-time" and pattern == DATETIME_PATTERN:
-                    detailed_logger.warning(
-                        f"{pattern_path} is defining a pattern that looks like a date-time without setting the format to `date-time`. Consider specifying the format to make it easier for users to edit this field in the UI."
-                    )
+            if format != "date" and pattern == DATE_PATTERN:
+                detailed_logger.warning(
+                    f"{pattern_path} is defining a pattern that looks like a date without setting the format to `date`. Consider specifying the format to make it easier for users to edit this field in the UI."
+                )
+            if format != "date-time" and pattern == DATETIME_PATTERN:
+                detailed_logger.warning(
+                    f"{pattern_path} is defining a pattern that looks like a date-time without setting the format to `date-time`. Consider specifying the format to make it easier for users to edit this field in the UI."
+                )
 
     def test_duplicate_order(self, connector_spec: ConnectorSpecification):
         """
@@ -530,12 +534,12 @@ class TestSpec(BaseTest):
         Specifically, when removing a property from the spec, existing connector configs will no longer be valid.
         False value introduces the risk of accidental breaking changes.
         Read https://github.com/airbytehq/airbyte/issues/14196 for more details"""
-        additional_properties_values = find_all_values_for_key_in_schema(
+        if additional_properties_values := find_all_values_for_key_in_schema(
             actual_connector_spec.connectionSpecification, "additionalProperties"
-        )
-        if additional_properties_values:
+        ):
             assert all(
-                [additional_properties_value is True for additional_properties_value in additional_properties_values]
+                additional_properties_value is True
+                for additional_properties_value in additional_properties_values
             ), "When set, additionalProperties field value must be true for backward compatibility."
 
 
@@ -614,8 +618,9 @@ class TestDiscovery(BaseTest):
         """Check the presence of unresolved `$ref`s values within each json schema."""
         schemas_errors = []
         for stream_name, stream in discovered_catalog.items():
-            check_result = list(find_all_values_for_key_in_schema(stream.json_schema, "$ref"))
-            if check_result:
+            if check_result := list(
+                find_all_values_for_key_in_schema(stream.json_schema, "$ref")
+            ):
                 schemas_errors.append({stream_name: check_result})
 
         assert not schemas_errors, f"Found unresolved `$refs` values for selected streams: {tuple(schemas_errors)}."
@@ -653,10 +658,14 @@ class TestDiscovery(BaseTest):
         False value introduces the risk of accidental breaking changes.
         Read https://github.com/airbytehq/airbyte/issues/14196 for more details"""
         for stream in discovered_catalog.values():
-            additional_properties_values = list(find_all_values_for_key_in_schema(stream.json_schema, "additionalProperties"))
-            if additional_properties_values:
+            if additional_properties_values := list(
+                find_all_values_for_key_in_schema(
+                    stream.json_schema, "additionalProperties"
+                )
+            ):
                 assert all(
-                    [additional_properties_value is True for additional_properties_value in additional_properties_values]
+                    additional_properties_value is True
+                    for additional_properties_value in additional_properties_values
                 ), "When set, additionalProperties field value must be true for backward compatibility."
 
     @pytest.mark.default_timeout(60)
@@ -702,10 +711,12 @@ class TestBasicRead(BaseTest):
         :param records: List of airbyte record messages gathered from connector instances.
         :param configured_catalog: Testcase parameters parsed from yaml file
         """
-        schemas: Dict[str, Set] = {}
-        for stream in configured_catalog.streams:
-            schemas[stream.stream.name] = set(get_expected_schema_structure(stream.stream.json_schema))
-
+        schemas: Dict[str, Set] = {
+            stream.stream.name: set(
+                get_expected_schema_structure(stream.stream.json_schema)
+            )
+            for stream in configured_catalog.streams
+        }
         for record in records:
             schema_pathes = schemas.get(record.stream)
             if not schema_pathes:
@@ -737,10 +748,13 @@ class TestBasicRead(BaseTest):
         """
         Only certain streams allowed to be empty
         """
-        allowed_empty_stream_names = set([allowed_empty_stream.name for allowed_empty_stream in allowed_empty_streams])
+        allowed_empty_stream_names = {
+            allowed_empty_stream.name
+            for allowed_empty_stream in allowed_empty_streams
+        }
         counter = Counter(record.stream for record in records)
 
-        all_streams = set(stream.stream.name for stream in configured_catalog.streams)
+        all_streams = {stream.stream.name for stream in configured_catalog.streams}
         streams_with_records = set(counter.keys())
         streams_without_records = all_streams - streams_with_records
 
@@ -775,10 +789,9 @@ class TestBasicRead(BaseTest):
         for stream in configured_catalog.streams:
             stream_records = [record.data for record in records if record.stream == stream.stream.name]
 
-            empty_field_paths = self._validate_field_appears_at_least_once_in_stream(
+            if empty_field_paths := self._validate_field_appears_at_least_once_in_stream(
                 records=stream_records, schema=stream.stream.json_schema
-            )
-            if empty_field_paths:
+            ):
                 stream_name_to_empty_fields_mapping[stream.stream.name] = empty_field_paths
 
         msg = "Following streams has records with fields, that are either null or not present in each output record:\n"
@@ -860,14 +873,16 @@ class TestBasicRead(BaseTest):
         Returns:
             ConfiguredAirbyteCatalog: the configured Airbyte catalog.
         """
-        if test_strictness_level is Config.TestStrictnessLevel.high or not configured_catalog_path:
-            if configured_catalog_path:
-                pytest.fail(
-                    "High strictness level error: you can't set a custom configured catalog on the basic read test when strictness level is high."
-                )
-            return build_configured_catalog_from_discovered_catalog_and_empty_streams(discovered_catalog, empty_streams)
-        else:
+        if (
+            test_strictness_level is not Config.TestStrictnessLevel.high
+            and configured_catalog_path
+        ):
             return build_configured_catalog_from_custom_catalog(configured_catalog_path, discovered_catalog)
+        if configured_catalog_path:
+            pytest.fail(
+                "High strictness level error: you can't set a custom configured catalog on the basic read test when strictness level is high."
+            )
+        return build_configured_catalog_from_discovered_catalog_and_empty_streams(discovered_catalog, empty_streams)
 
     def test_read(
         self,
@@ -937,7 +952,9 @@ class TestBasicRead(BaseTest):
         trace_messages = filter_output(output, Type.TRACE)
         error_trace_messages = list(filter(lambda m: m.trace.type == TraceType.ERROR, trace_messages))
 
-        assert len(error_trace_messages) >= 1, "Connector should emit at least one error trace message"
+        assert (
+            error_trace_messages
+        ), "Connector should emit at least one error trace message"
 
     @staticmethod
     def remove_extra_fields(record: Any, spec: Any) -> Any:
@@ -981,17 +998,14 @@ class TestBasicRead(BaseTest):
             _make_hashable = functools.partial(make_hashable, exclude_fields=ignored_fields) if ignored_fields else make_hashable
             expected = set(map(_make_hashable, expected))
             actual = set(map(_make_hashable, actual))
-            missing_expected = set(expected) - set(actual)
-
-            if missing_expected:
+            if missing_expected := set(expected) - set(actual):
                 msg = f"Stream {stream_name}: All expected records must be produced"
                 detailed_logger.info(msg)
                 detailed_logger.log_json_list(missing_expected)
                 pytest.fail(msg)
 
             if not extra_records:
-                extra_actual = set(actual) - set(expected)
-                if extra_actual:
+                if extra_actual := set(actual) - set(expected):
                     msg = f"Stream {stream_name}: There are more records than expected, but extra_records is off"
                     detailed_logger.info(msg)
                     detailed_logger.log_json_list(extra_actual)

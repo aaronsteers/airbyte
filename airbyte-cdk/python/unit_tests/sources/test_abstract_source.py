@@ -487,10 +487,7 @@ class TestIncrementalRead:
         """Tests that an incremental read which doesn't specify a checkpoint interval outputs a STATE message
         after reading N records within a stream.
         """
-        if use_legacy:
-            input_state = defaultdict(dict)
-        else:
-            input_state = []
+        input_state = defaultdict(dict) if use_legacy else []
         stream_output = [{"k1": "v1"}, {"k2": "v2"}]
 
         stream_1 = MockStream(
@@ -555,10 +552,7 @@ class TestIncrementalRead:
         """Tests that an incremental read which doesn't specify a checkpoint interval outputs
         a STATE message only after fully reading the stream and does not output any STATE messages during syncing the stream.
         """
-        if use_legacy:
-            input_state = defaultdict(dict)
-        else:
-            input_state = []
+        input_state = defaultdict(dict) if use_legacy else []
         stream_output = [{"k1": "v1"}, {"k2": "v2"}]
 
         stream_1 = MockStream(
@@ -609,10 +603,7 @@ class TestIncrementalRead:
     )
     def test_with_slices(self, mocker, use_legacy, per_stream_enabled):
         """Tests that an incremental read which uses slices outputs each record in the slice followed by a STATE message, for each slice"""
-        if use_legacy:
-            input_state = defaultdict(dict)
-        else:
-            input_state = []
+        input_state = defaultdict(dict) if use_legacy else []
         slices = [{"1": "1"}, {"2": "2"}]
         stream_output = [{"k1": "v1"}, {"k2": "v2"}, {"k3": "v3"}]
 
@@ -697,11 +688,7 @@ class TestIncrementalRead:
         Tests that an incremental read returns at least one state messages even if no records were read:
             1. outputs a state message after reading the entire stream
         """
-        if use_legacy:
-            input_state = defaultdict(dict)
-        else:
-            input_state = []
-
+        input_state = defaultdict(dict) if use_legacy else []
         stream_output = [{"k1": "v1"}, {"k2": "v2"}, {"k3": "v3"}]
         state = {"cursor": "value"}
         stream_1 = MockStreamWithState(
@@ -783,10 +770,7 @@ class TestIncrementalRead:
             2. outputs a state message every N records (N=checkpoint_interval)
             3. outputs a state message after reading the entire slice
         """
-        if use_legacy:
-            input_state = defaultdict(dict)
-        else:
-            input_state = []
+        input_state = defaultdict(dict) if use_legacy else []
         slices = [{"1": "1"}, {"2": "2"}]
         stream_output = [{"k1": "v1"}, {"k2": "v2"}, {"k3": "v3"}]
         stream_1 = MockStream(

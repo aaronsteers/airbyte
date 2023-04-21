@@ -141,7 +141,7 @@ def test_write():
     # Create Destination
     destination = DestinationAmazonSqs()
     # Send messages using write()
-    for message in destination.write(config, catalog, [ab_message]):
+    for _ in destination.write(config, catalog, [ab_message]):
         print(f"Message Sent with delay of {message_delay} seconds")
     # Listen for messages for max 20 seconds
     timeout = time.time() + 20
@@ -151,13 +151,10 @@ def test_write():
         if message_received.get("Messages"):
             print("Message received.")
             message_body = json.loads(message_received["Messages"][0]["Body"])
-            # Compare the body of the received message, with the body of the message we sent
-            if message_body == test_message["record"]["data"]:
-                print("Received message matches for standard queue write.")
-                assert True
-                break
-            else:
+            if message_body != test_message["record"]["data"]:
                 continue
+            print("Received message matches for standard queue write.")
+            break
         if time.time() > timeout:
             print("Timed out waiting for message after 20 seconds.")
             assert False
@@ -173,7 +170,7 @@ def test_write():
         key_queue_url, queue_region, user["AccessKeyId"], user["SecretAccessKey"], message_body_key, message_delay
     )
     # Send messages using write()
-    for message in destination.write(key_config, catalog, [ab_message]):
+    for _ in destination.write(key_config, catalog, [ab_message]):
         print(f"Message Sent with delay of {message_delay} seconds")
     # Listen for messages for max 20 seconds
     timeout = time.time() + 20
@@ -183,13 +180,13 @@ def test_write():
         if message_received.get("Messages"):
             print("Message received.")
             message_body = message_received["Messages"][0]["Body"]
-            # Compare the body of the received message, with the body of the message we sent
-            if message_body == test_message["record"]["data"][message_body_key]:
-                print("Received message matches for body key queue write.")
-                assert True
-                break
-            else:
+            if (
+                message_body
+                != test_message["record"]["data"][message_body_key]
+            ):
                 continue
+            print("Received message matches for body key queue write.")
+            break
         if time.time() > timeout:
             print("Timed out waiting for message after 20 seconds.")
             assert False
@@ -204,7 +201,7 @@ def test_write():
         fifo_queue_url, queue_region, user["AccessKeyId"], user["SecretAccessKey"], "fifo-group", message_delay
     )
     # Send messages using write()
-    for message in destination.write(fifo_config, catalog, [ab_message]):
+    for _ in destination.write(fifo_config, catalog, [ab_message]):
         print(f"Message Sent with delay of {message_delay} seconds")
     # Listen for messages for max 20 seconds
     timeout = time.time() + 20
@@ -214,13 +211,10 @@ def test_write():
         if message_received.get("Messages"):
             print("Message received.")
             message_body = json.loads(message_received["Messages"][0]["Body"])
-            # Compare the body of the received message, with the body of the message we sent
-            if message_body == test_message["record"]["data"]:
-                print("Received message matches for FIFO queue write.")
-                assert True
-                break
-            else:
+            if message_body != test_message["record"]["data"]:
                 continue
+            print("Received message matches for FIFO queue write.")
+            break
         if time.time() > timeout:
             print("Timed out waiting for message after 20 seconds.")
             assert False

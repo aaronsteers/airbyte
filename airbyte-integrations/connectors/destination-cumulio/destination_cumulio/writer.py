@@ -17,15 +17,21 @@ def _convert_airbyte_configured_stream_into_headers_dict(
     """Return a dict of column names and types based on the configured Airbyte stream.
     Note that the Airbyte types are currently not used due to Cumul.io's Data API Service not supporting specifying column types.
     """
-    column_headers = {}
-    for column_header in configured_stream.stream.json_schema["properties"]:
-        if "airbyte-type" in configured_stream.stream.json_schema["properties"][column_header]:
-            column_headers[column_header] = {
-                "airbyte-type": configured_stream.stream.json_schema["properties"][column_header]["airbyte-type"]
-            }
-        else:
-            column_headers[column_header] = {"airbyte-type": configured_stream.stream.json_schema["properties"][column_header]["type"]}
-    return column_headers
+    return {
+        column_header: {
+            "airbyte-type": configured_stream.stream.json_schema["properties"][
+                column_header
+            ]["airbyte-type"]
+        }
+        if "airbyte-type"
+        in configured_stream.stream.json_schema["properties"][column_header]
+        else {
+            "airbyte-type": configured_stream.stream.json_schema["properties"][
+                column_header
+            ]["type"]
+        }
+        for column_header in configured_stream.stream.json_schema["properties"]
+    }
 
 
 class CumulioWriter:
@@ -87,24 +93,21 @@ class CumulioWriter:
         except KeyError:
             raise Exception(f"The stream {stream_name} is not defined in the configured_catalog and won't thus be streamed.")
 
-        data: list[Any] = [None for i in range(len(self.writers[stream_name]["column_headers"]))]
+        data: list[Any] = [
+            None for _ in range(len(self.writers[stream_name]["column_headers"]))
+        ]
         for column in airbyte_data:
             unknown_data = True
-            index: int = 0
-            for column_header in self.writers[stream_name]["column_headers"]:
+            for index, column_header in enumerate(self.writers[stream_name]["column_headers"]):
                 if column_header["name"] == column:
                     unknown_data = False
                     # Cumul.io doesn't support storing or querying nested (list, dict) or boolean data.
                     # we'll stringify this data via json.dumps
-                    if (
-                        isinstance(airbyte_data[column], list)
-                        or isinstance(airbyte_data[column], dict)
-                        or isinstance(airbyte_data[column], bool)
-                    ):
-                        data[index] = json.dumps(airbyte_data[column])
-                    else:
-                        data[index] = airbyte_data[column]
-                index += 1
+                    data[index] = (
+                        json.dumps(airbyte_data[column])
+                        if isinstance(airbyte_data[column], (list, dict, bool))
+                        else airbyte_data[column]
+                    )
             if unknown_data:
                 self.logger.debug(
                     f"The value with name {column} has not been defined in the ConfiguredAirbyteStream and will thus be "

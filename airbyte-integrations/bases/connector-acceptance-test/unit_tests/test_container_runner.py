@@ -45,7 +45,10 @@ class TestContainerRunner:
         runner._client.containers.run.assert_called_once_with(
             image=runner._image,
             command="dummy_cmd",
-            volumes={str(tmp_path) + "/run_1/input": {"bind": "/data"}, str(tmp_path) + "/run_1/output": {"bind": "/local", "mode": "rw"}},
+            volumes={
+                f"{str(tmp_path)}/run_1/input": {"bind": "/data"},
+                f"{str(tmp_path)}/run_1/output": {"bind": "/local", "mode": "rw"},
+            },
             network_mode="host",
             detach=True,
             environment={"foo": "bar"},

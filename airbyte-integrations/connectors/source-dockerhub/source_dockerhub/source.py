@@ -65,9 +65,8 @@ class DockerHub(HttpStream):
         decoded_response = response.json()
         if decoded_response["next"] is None:
             return None
-        else:
-            para = urlparse(decoded_response["next"]).query
-            return "?" + para
+        para = urlparse(decoded_response["next"]).query
+        return f"?{para}"
 
     def path(
         self, stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = ""
@@ -86,5 +85,4 @@ class DockerHub(HttpStream):
         stream_slice: Mapping[str, Any] = None,
         next_page_token: Mapping[str, Any] = None,
     ) -> Iterable[Mapping]:
-        for repository in response.json().get("results"):
-            yield repository
+        yield from response.json().get("results")

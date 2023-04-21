@@ -4,4 +4,4 @@
 
 # fixture for the unit_tests
 def test_fixture():
-    assert True
+    pass

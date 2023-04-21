@@ -33,9 +33,8 @@ class CatalogModel(BaseModel):
                 # generation jsonschema so we cant set field as nullable (i.e.
                 # field that can have either null and non-null values),
                 # generate this jsonschema value manually.
-                if "type" in prop:
-                    if allow_none:
-                        prop["type"] = ["null", prop["type"]]
+                if "type" in prop and allow_none:
+                    prop["type"] = ["null", prop["type"]]
 
 
 class MetricsReport(CatalogModel):

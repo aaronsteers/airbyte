@@ -13,7 +13,7 @@ def jinja_call(command: Union[str, dbt_macro.Macro]) -> str:
 
 
 def remove_jinja(command: str) -> str:
-    return str(command).replace("{{ ", "").replace(" }}", "")
+    return command.replace("{{ ", "").replace(" }}", "")
 
 
 def is_string(property_type) -> bool:
@@ -23,8 +23,11 @@ def is_string(property_type) -> bool:
 def is_datetime(definition: dict) -> bool:
     return (
         is_string(definition["type"])
-        and ("format" in definition.keys())
-        and (definition["format"] == "date-time" or "date-time" in definition["format"])
+        and "format" in definition
+        and (
+            definition["format"] == "date-time"
+            or "date-time" in definition["format"]
+        )
     )
 
 
@@ -39,7 +42,7 @@ def is_datetime_with_timezone(definition: dict) -> bool:
 def is_date(definition: dict) -> bool:
     return (
         is_string(definition["type"])
-        and ("format" in definition.keys())
+        and "format" in definition
         and (definition["format"] == "date" or "date" in definition["format"])
     )
 
@@ -101,10 +104,7 @@ def is_airbyte_column(name: str) -> bool:
 
 
 def is_simple_property(definition: dict) -> bool:
-    if "type" not in definition:
-        property_type = "object"
-    else:
-        property_type = definition["type"]
+    property_type = "object" if "type" not in definition else definition["type"]
     return (
         is_string(property_type)
         or is_big_integer(definition)

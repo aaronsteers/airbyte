@@ -114,11 +114,11 @@ def retrieve_all_records(client: SftpClient, streams: List[str]) -> List[Airbyte
     """retrieves and formats all records on the SFTP server as Airbyte messages"""
     all_records = []
     for stream in streams:
-        for data in client.read_data(stream):
-            all_records.append((stream, data))
-    out = []
-    for stream, record in all_records:
-        out.append(_record(stream, record["str_col"], record["int_col"]))
+        all_records.extend((stream, data) for data in client.read_data(stream))
+    out = [
+        _record(stream, record["str_col"], record["int_col"])
+        for stream, record in all_records
+    ]
     return _sort(out)
 
 

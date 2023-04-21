@@ -130,10 +130,7 @@ class OrderedIterableMatcher(Iterable):
         self.iterable = iterable
 
     def __eq__(self, other):
-        if not isinstance(other, Iterable):
-            return False
-
-        return list(self) == list(other)
+        return list(self) == list(other) if isinstance(other, Iterable) else False
 
 
 class TestRun:
@@ -213,8 +210,10 @@ class TestRun:
         validate_mock = mocker.patch("airbyte_cdk.destinations.destination.check_config_against_spec_or_exit")
         # mock input is a record followed by some state messages
         mocked_input: List[AirbyteMessage] = [_wrapped(_record("s1", {"k1": "v1"})), *expected_write_result]
-        mocked_stdin_string = "\n".join([record.json(exclude_unset=True) for record in mocked_input])
-        mocked_stdin_string += "\n add this non-serializable string to verify the destination does not break on malformed input"
+        mocked_stdin_string = (
+            "\n".join([record.json(exclude_unset=True) for record in mocked_input])
+            + "\n add this non-serializable string to verify the destination does not break on malformed input"
+        )
         mocked_stdin = io.TextIOWrapper(io.BytesIO(bytes(mocked_stdin_string, "utf-8")))
 
         monkeypatch.setattr("sys.stdin", mocked_stdin)

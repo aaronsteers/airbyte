@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 
 
 def validate_ms_timestamp(ms_timestamp: int) -> int:
-    if not type(ms_timestamp) == int or not len(str(ms_timestamp)) == 13:
+    if type(ms_timestamp) != int or len(str(ms_timestamp)) != 13:
         raise ValueError(f"Not a millisecond-precision timestamp: {ms_timestamp}")
     return ms_timestamp
 

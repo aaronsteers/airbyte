@@ -39,5 +39,4 @@ def test_source_defined_cursor():
 
 def test_stream_checkpoint_interval():
     stream = AdjustReportStream(connector=None, config=CONFIG)
-    expected_checkpoint_interval = None
-    assert stream.state_checkpoint_interval == expected_checkpoint_interval
+    assert stream.state_checkpoint_interval is None

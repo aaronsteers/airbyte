@@ -58,8 +58,7 @@ def teardown(config: Mapping, configured_catalog: ConfiguredAirbyteCatalog):
 
 @pytest.fixture(name="writer")
 def client_fixture(config) -> FirestoreWriter:
-    writer = FirestoreWriter(**config)
-    return writer
+    return FirestoreWriter(**config)
 
 
 def test_check_valid_config(config: Mapping):

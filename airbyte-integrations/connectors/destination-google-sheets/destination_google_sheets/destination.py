@@ -29,8 +29,9 @@ class DestinationGoogleSheets(Destination):
         try:
             client = GoogleSheetsClient(config).authorize()
             spreadsheet = GoogleSheets(client, spreadsheet_id)
-            check_result = ConnectionTest(spreadsheet).perform_connection_test()
-            if check_result:
+            if check_result := ConnectionTest(
+                spreadsheet
+            ).perform_connection_test():
                 return AirbyteConnectionStatus(status=Status.SUCCEEDED)
         except RefreshError as token_err:
             return AirbyteConnectionStatus(status=Status.FAILED, message=f"{token_err}")

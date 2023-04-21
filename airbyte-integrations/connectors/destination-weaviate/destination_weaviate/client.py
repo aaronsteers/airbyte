@@ -42,16 +42,14 @@ class Client:
             id_field_name = self.id_schema.get(stream_name, "")
             record_id = generate_id(record.get(id_field_name))
             del record[id_field_name]
+        elif "id" in record:
+            record_id = generate_id(record.get("id"))
+            del record["id"]
+        elif "_id" in record:
+            record_id = generate_id(record.get("_id"))
+            del record["_id"]
         else:
-            if "id" in record:
-                record_id = generate_id(record.get("id"))
-                del record["id"]
-            # Weaviate will throw an error if you try to store a field with name _id
-            elif "_id" in record:
-                record_id = generate_id(record.get("_id"))
-                del record["_id"]
-            else:
-                record_id = uuid.uuid4()
+            record_id = uuid.uuid4()
         record_id = str(record_id)
 
         # TODO support nested objects instead of converting to json string when weaviate supports this
@@ -94,8 +92,7 @@ class Client:
         results = self.client.batch.create_objects()
         self.objects_with_error.clear()
         for result in results:
-            errors = result.get("result", {}).get("errors", [])
-            if errors:
+            if errors := result.get("result", {}).get("errors", []):
                 obj_id = result.get("id")
                 self.objects_with_error[obj_id] = self.buffered_objects.get(obj_id)
                 logging.info(f"Object {obj_id} had errors: {errors}. Going to retry.")

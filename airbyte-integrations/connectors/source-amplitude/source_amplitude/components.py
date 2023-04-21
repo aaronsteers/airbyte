@@ -26,8 +26,7 @@ class AverageSessionLengthRecordExtractor(RecordExtractor):
     """
 
     def extract_records(self, response: requests.Response) -> List[Record]:
-        response_data = response.json().get("data", [])
-        if response_data:
+        if response_data := response.json().get("data", []):
             # From the Amplitude documentation it follows that "series" is an array with one element which is itself
             # an array that contains the average session length for each day.
             # https://developers.amplitude.com/docs/dashboard-rest-api#returns-2
@@ -45,10 +44,8 @@ class ActiveUsersRecordExtractor(RecordExtractor):
     """
 
     def extract_records(self, response: requests.Response) -> List[Record]:
-        response_data = response.json().get("data", [])
-        if response_data:
-            series = list(zip(*response_data["series"]))
-            if series:
+        if response_data := response.json().get("data", []):
+            if series := list(zip(*response_data["series"])):
                 return [
                     {"date": date, "statistics": dict(zip(response_data["seriesLabels"], users))}
                     for date, users in zip(response_data["xValues"], series)
@@ -79,12 +76,12 @@ class EventsExtractor(RecordExtractor):
         """
         Get all properties from schema with format: 'date-time'
         """
-        result = []
         schema = self._get_schema_root_properties()
-        for key, value in schema.items():
-            if value.get("format") == "date-time":
-                result.append(key)
-        return result
+        return [
+            key
+            for key, value in schema.items()
+            if value.get("format") == "date-time"
+        ]
 
     def _date_time_to_rfc3339(self, record: MutableMapping[str, Any]) -> MutableMapping[str, Any]:
         """

@@ -255,26 +255,24 @@ def test_configured_catalog_fixture(mocker, test_strictness_level, configured_ca
     configured_catalog = test_core.TestBasicRead.configured_catalog_fixture.__wrapped__(
         t, test_strictness_level, configured_catalog_path, mock_discovered_catalog, mock_empty_streams
     )
-    if test_strictness_level is Config.TestStrictnessLevel.high:
-        if configured_catalog_path:
-            test_core.pytest.fail.assert_called_once()
-        else:
-            test_core.build_configured_catalog_from_discovered_catalog_and_empty_streams.assert_called_once_with(
-                mock_discovered_catalog, mock_empty_streams
-            )
-            test_core.build_configured_catalog_from_custom_catalog.assert_not_called()
-            assert configured_catalog == test_core.build_configured_catalog_from_discovered_catalog_and_empty_streams.return_value
+    if (
+        test_strictness_level is Config.TestStrictnessLevel.high
+        and configured_catalog_path
+    ):
+        test_core.pytest.fail.assert_called_once()
+    elif (
+        test_strictness_level is Config.TestStrictnessLevel.high
+        or configured_catalog_path is None
+    ):
+        test_core.build_configured_catalog_from_discovered_catalog_and_empty_streams.assert_called_once_with(
+            mock_discovered_catalog, mock_empty_streams
+        )
+        test_core.build_configured_catalog_from_custom_catalog.assert_not_called()
+        assert configured_catalog == test_core.build_configured_catalog_from_discovered_catalog_and_empty_streams.return_value
     else:
-        if configured_catalog_path is None:
-            test_core.build_configured_catalog_from_discovered_catalog_and_empty_streams.assert_called_once_with(
-                mock_discovered_catalog, mock_empty_streams
-            )
-            test_core.build_configured_catalog_from_custom_catalog.assert_not_called()
-            assert configured_catalog == test_core.build_configured_catalog_from_discovered_catalog_and_empty_streams.return_value
-        else:
-            test_core.build_configured_catalog_from_custom_catalog.assert_called_once_with(configured_catalog_path, mock_discovered_catalog)
-            test_core.build_configured_catalog_from_discovered_catalog_and_empty_streams.assert_not_called()
-            assert configured_catalog == test_core.build_configured_catalog_from_custom_catalog.return_value
+        test_core.build_configured_catalog_from_custom_catalog.assert_called_once_with(configured_catalog_path, mock_discovered_catalog)
+        test_core.build_configured_catalog_from_discovered_catalog_and_empty_streams.assert_not_called()
+        assert configured_catalog == test_core.build_configured_catalog_from_custom_catalog.return_value
 
 
 @pytest.mark.parametrize(

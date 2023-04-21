@@ -58,8 +58,7 @@ class CopperStream(HttpStream, ABC):
         }
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
-        response_result = response.json()
-        if response_result:
+        if response_result := response.json():
             yield from response_result
         return
 

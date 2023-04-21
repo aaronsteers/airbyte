@@ -59,7 +59,7 @@ class DestinationConvex(Destination):
                 streams_to_replace[self.temp_table_name(table_name, timestamp)] = table_name
             elif configured_stream.destination_sync_mode == DestinationSyncMode.append_dedup and configured_stream.primary_key:
                 indexes_to_add[configured_stream.stream.name] = configured_stream.primary_key
-        if len(indexes_to_add) != 0:
+        if indexes_to_add:
             writer.add_indexes(indexes_to_add)
 
         # Process records
@@ -88,13 +88,11 @@ class DestinationConvex(Destination):
         # Make sure to flush any records still in the queue
         writer.flush()
 
-        if len(streams_to_replace) != 0:
+        if streams_to_replace:
             writer.replace_streams(streams_to_replace)
 
     def table_name_for_stream(self, namespace: Optional[str], stream_name: str) -> str:
-        if namespace is not None:
-            return f"{namespace}_{stream_name}"
-        return stream_name
+        return f"{namespace}_{stream_name}" if namespace is not None else stream_name
 
     def temp_table_name(self, table_name: str, timestamp: str) -> str:
         return f"temp_{timestamp}_{table_name}"

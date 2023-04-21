@@ -40,8 +40,7 @@ def test_next_page_token(patch_base_class):
        "name": "Test doc"
     }
     inputs = {"response": response}
-    expected_token = None
-    assert stream.next_page_token(**inputs) == expected_token
+    assert stream.next_page_token(**inputs) is None
 
 
 def test_parse_response(patch_base_class):
@@ -87,5 +86,4 @@ def test_should_retry(patch_base_class, http_status, should_retry):
 def test_backoff_time(patch_base_class):
     response_mock = MagicMock()
     stream = CodaStream(authenticator=authenticator)
-    expected_backoff_time = None
-    assert stream.backoff_time(response_mock) == expected_backoff_time
+    assert stream.backoff_time(response_mock) is None

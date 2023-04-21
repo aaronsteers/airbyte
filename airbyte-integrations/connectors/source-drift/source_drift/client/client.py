@@ -16,8 +16,7 @@ class DriftAuthenticator:
         self.config = config
 
     def get_token(self) -> str:
-        access_token = self.config.get("access_token")
-        if access_token:
+        if access_token := self.config.get("access_token"):
             return access_token
         else:
             return self.config.get("credentials").get("access_token")

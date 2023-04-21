@@ -153,9 +153,9 @@ class SourceBambooHr(AbstractSource):
 
         available_fields = MetaFieldsStream(config).read_records(sync_mode=SyncMode.full_refresh)
         custom_fields = convert_custom_reports_fields_to_list(config.get("custom_reports_fields", ""))
-        denied_fields = validate_custom_fields(custom_fields, available_fields)
-
-        if denied_fields:
+        if denied_fields := validate_custom_fields(
+            custom_fields, available_fields
+        ):
             return False, CustomFieldsAccessDeniedError(denied_fields)
 
         try:

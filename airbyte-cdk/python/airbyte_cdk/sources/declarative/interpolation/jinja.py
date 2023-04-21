@@ -39,13 +39,11 @@ class JinjaInterpolation(Interpolation):
     def eval(self, input_str: str, config: Config, default: Optional[str] = None, **additional_parameters):
         context = {"config": config, **additional_parameters}
         try:
-            if isinstance(input_str, str):
-                result = self._eval(input_str, context)
-                if result:
-                    return self._literal_eval(result)
-            else:
+            if not isinstance(input_str, str):
                 # If input is not a string, return it as is
                 raise Exception(f"Expected a string. got {input_str}")
+            if result := self._eval(input_str, context):
+                return self._literal_eval(result)
         except UndefinedError:
             pass
         # If result is empty or resulted in an undefined error, evaluate and return the default string

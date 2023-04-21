@@ -79,9 +79,8 @@ class ObjectDpathExtractor(DpathExtractor):
         elif isinstance(extracted, dict) and all(isinstance(v, dict) for v in extracted.values()):  # Ensure object is dict[Hashable, dict]
             if not self.inject_key_as_field:
                 return [value for _, value in extracted.items()]
-            else:
-                key_field = self.inject_key_as_field.eval(self.config)
-                return [{key_field: key, **value} for key, value in extracted.items()]
+            key_field = self.inject_key_as_field.eval(self.config)
+            return [{key_field: key, **value} for key, value in extracted.items()]
         elif extracted:
             return [extracted]
         else:

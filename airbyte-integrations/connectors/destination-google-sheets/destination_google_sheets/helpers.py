@@ -18,16 +18,15 @@ logger = AirbyteLogger()
 
 
 def get_spreadsheet_id(id_or_url: str) -> str:
-    if re.match(r"(http://)|(https://)", id_or_url):
-        m = re.search(r"(/)([-\w]{40,})([/]?)", id_or_url)
-        if m.group(2):
-            return m.group(2)
-        else:
-            logger.error(
-                "The provided URL doesn't match the requirements. See <a href='https://docs.airbyte.com/integrations/destinations/google-sheets#sheetlink'>this guide</a> for more details."
-            )
-    else:
+    if not re.match(r"(http://)|(https://)", id_or_url):
         return id_or_url
+    m = re.search(r"(/)([-\w]{40,})([/]?)", id_or_url)
+    if m[2]:
+        return m[2]
+    else:
+        logger.error(
+            "The provided URL doesn't match the requirements. See <a href='https://docs.airbyte.com/integrations/destinations/google-sheets#sheetlink'>this guide</a> for more details."
+        )
 
 
 def get_streams_from_catalog(catalog: ConfiguredAirbyteCatalog, limit: int = STREAMS_COUNT_LIMIT):
@@ -64,7 +63,7 @@ class ConnectionTest:
 
     def check_values(self, wks: Worksheet) -> bool:
         value = wks.get_value("A2")
-        return True if value == self.test_data[1] else False
+        return value == self.test_data[1]
 
     def perform_connection_test(self) -> bool:
         try:

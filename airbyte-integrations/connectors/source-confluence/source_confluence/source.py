@@ -34,8 +34,7 @@ class ConfluenceStream(HttpStream, ABC):
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
         json_response = response.json()
         links = json_response.get("_links")
-        next_link = links.get("next")
-        if next_link:
+        if next_link := links.get("next"):
             self.start += self.limit
             return {"start": self.start}
 
@@ -44,13 +43,12 @@ class ConfluenceStream(HttpStream, ABC):
     ) -> MutableMapping[str, Any]:
         params = {"limit": self.limit, "expand": ",".join(self.expand)}
         if next_page_token:
-            params.update({"start": next_page_token["start"]})
+            params["start"] = next_page_token["start"]
         return params
 
     def parse_response(self, response: requests.Response, **kwargs) -> Iterable[Mapping]:
         json_response = response.json()
-        records = json_response.get("results", [])
-        yield from records
+        yield from json_response.get("results", [])
 
     def path(
         self, stream_state: Mapping[str, Any] = None, stream_slice: Mapping[str, Any] = None, next_page_token: Mapping[str, Any] = None

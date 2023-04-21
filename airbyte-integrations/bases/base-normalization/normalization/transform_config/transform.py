@@ -35,7 +35,7 @@ class TransformConfig:
         parser.add_argument("--out", type=str, required=True, help="path to output transformed config to")
 
         parsed_args = parser.parse_args(args)
-        print(str(parsed_args))
+        print(parsed_args)
 
         return {
             "config": parsed_args.config,
@@ -69,22 +69,18 @@ class TransformConfig:
 
     @staticmethod
     def create_file(name, content):
-        f = open(name, "x")
-        f.write(content)
-        f.close()
+        with open(name, "x") as f:
+            f.write(content)
         return os.path.abspath(f.name)
 
     @staticmethod
     def is_ssh_tunnelling(config: Dict[str, Any]) -> bool:
         tunnel_methods = ["SSH_KEY_AUTH", "SSH_PASSWORD_AUTH"]
-        if (
-            "tunnel_method" in config.keys()
+        return (
+            "tunnel_method" in config
             and "tunnel_method" in config["tunnel_method"]
             and config["tunnel_method"]["tunnel_method"].upper() in tunnel_methods
-        ):
-            return True
-        else:
-            return False
+        )
 
     @staticmethod
     def is_port_free(port: int) -> bool:
@@ -118,7 +114,7 @@ class TransformConfig:
         It will return config with appropriately altered port and host values
         """
         # make a copy of config rather than mutate in place
-        ssh_ready_config = {k: v for k, v in config.items()}
+        ssh_ready_config = dict(config)
         ssh_ready_config[port_key] = TransformConfig.pick_a_port()
         ssh_ready_config[host_key] = "localhost"
         return ssh_ready_config
@@ -177,8 +173,7 @@ class TransformConfig:
             "threads": 8,
         }
 
-        ssl = config.get("ssl")
-        if ssl:
+        if ssl := config.get("ssl"):
             ssl_mode = config.get("ssl_mode", {"mode": "allow"})
             dbt_config["sslmode"] = ssl_mode.get("mode")
             if ssl_mode["mode"] == "verify-ca":
@@ -196,8 +191,7 @@ class TransformConfig:
     @staticmethod
     def transform_redshift(config: Dict[str, Any]):
         print("transform_redshift")
-        # https://docs.getdbt.com/reference/warehouse-profiles/redshift-profile
-        dbt_config = {
+        return {
             "type": "redshift",
             "host": config["host"],
             "user": config["username"],
@@ -207,7 +201,6 @@ class TransformConfig:
             "schema": config["schema"],
             "threads": 4,
         }
-        return dbt_config
 
     @staticmethod
     def transform_snowflake(config: Dict[str, Any]):
@@ -258,8 +251,7 @@ class TransformConfig:
         if TransformConfig.is_ssh_tunnelling(config):
             config = TransformConfig.get_ssh_altered_config(config, port_key="port", host_key="host")
 
-        # https://github.com/dbeatty10/dbt-mysql#configuring-your-profile
-        dbt_config = {
+        return {
             # MySQL 8.x - type: mysql
             # MySQL 5.x - type: mysql5
             "type": config.get("type", "mysql"),
@@ -271,13 +263,11 @@ class TransformConfig:
             "username": config["username"],
             "password": config.get("password", ""),
         }
-        return dbt_config
 
     @staticmethod
     def transform_oracle(config: Dict[str, Any]):
         print("transform_oracle")
-        # https://github.com/techindicium/dbt-oracle#configure-your-profile
-        dbt_config = {
+        return {
             "type": "oracle",
             "host": config["host"],
             "user": config["username"],
@@ -287,7 +277,6 @@ class TransformConfig:
             "schema": config["schema"],
             "threads": 4,
         }
-        return dbt_config
 
     @staticmethod
     def transform_mssql(config: Dict[str, Any]):
@@ -298,7 +287,7 @@ class TransformConfig:
             config = TransformConfig.get_ssh_altered_config(config, port_key="port", host_key="host")
             config["host"] = "127.0.0.1"  # localhost is not supported by dbt-sqlserver.
 
-        dbt_config = {
+        return {
             "type": "sqlserver",
             "driver": "ODBC Driver 17 for SQL Server",
             "server": config["host"],
@@ -311,7 +300,6 @@ class TransformConfig:
             # "authentication": "sql",
             # "trusted_connection": True,
         }
-        return dbt_config
 
     @staticmethod
     def transform_clickhouse(config: Dict[str, Any]):
@@ -338,8 +326,7 @@ class TransformConfig:
     @staticmethod
     def transform_tidb(config: Dict[str, Any]):
         print("transform_tidb")
-        # https://github.com/pingcap/dbt-tidb#profile-configuration
-        dbt_config = {
+        return {
             "type": "tidb",
             "server": config["host"],
             "port": config["port"],
@@ -348,17 +335,15 @@ class TransformConfig:
             "username": config["username"],
             "password": config.get("password", ""),
         }
-        return dbt_config
 
     @staticmethod
     def transform_duckdb(config: Dict[str, Any]):
         print("transform_duckdb")
-        dbt_config = {
+        return {
             "type": "duckdb",
             "path": config["destination_path"],
-            "schema": config["schema"] if "schema" in config else "main",
+            "schema": config.get("schema", "main"),
         }
-        return dbt_config
 
     @staticmethod
     def read_json_config(input_path: str):

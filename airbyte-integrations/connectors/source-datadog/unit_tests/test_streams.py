@@ -57,12 +57,11 @@ def test_next_page_token(config):
     [AuditLogs, Dashboards, Downtimes, Incidents, IncidentTeams, Logs, Metrics, SyntheticTests, Users],
 )
 def test_next_page_token_empty_response(stream, config):
-    expected_token = None
     args = SourceDatadog().connector_config(config)
     instance = stream(**args)
     response = requests.Response()
     response._content = json.dumps({}).encode("utf-8")
-    assert instance.next_page_token(response=response) == expected_token
+    assert instance.next_page_token(response=response) is None
 
 
 @pytest.mark.parametrize(

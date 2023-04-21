@@ -29,9 +29,8 @@ class PageIncrement(PaginationStrategy):
     def next_page_token(self, response: requests.Response, last_records: List[Mapping[str, Any]]) -> Optional[Any]:
         if len(last_records) < self.page_size:
             return None
-        else:
-            self._page += 1
-            return self._page
+        self._page += 1
+        return self._page
 
     def reset(self):
         self._page = self.start_from_page

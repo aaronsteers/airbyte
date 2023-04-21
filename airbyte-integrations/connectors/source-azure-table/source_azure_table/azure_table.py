@@ -56,9 +56,7 @@ class AzureTableReader:
         self.account_name = config[constants.azure_storage_account_name_key_name]
         self.access_key = config[constants.azure_storage_access_key_key_name]
         self.endpoint_suffix = config[constants.azure_storage_endpoint_suffix_key_name]
-        self.connection_string = "DefaultEndpointsProtocol=https;AccountName={};AccountKey={};EndpointSuffix={}".format(
-            self.account_name, self.access_key, self.endpoint_suffix
-        )
+        self.connection_string = f"DefaultEndpointsProtocol=https;AccountName={self.account_name};AccountKey={self.access_key};EndpointSuffix={self.endpoint_suffix}"
 
     def get_table_service_client(self) -> TableServiceClient:
         """
@@ -95,8 +93,9 @@ class AzureTableReader:
         """
         try:
             table_service_client = self.get_table_service_client()
-            tables_iterator = table_service_client.list_tables(results_per_page=constants.results_per_page)
-            return tables_iterator
+            return table_service_client.list_tables(
+                results_per_page=constants.results_per_page
+            )
         except Exception as e:
             raise Exception(f"An exception occurred: {str(e)}")
 

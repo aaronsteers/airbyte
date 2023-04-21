@@ -55,4 +55,4 @@ class SinglePartitionRouter(StreamSlicer):
         return {}
 
     def stream_slices(self, sync_mode: SyncMode, stream_state: Mapping[str, Any]) -> Iterable[StreamSlice]:
-        yield dict()
+        yield {}

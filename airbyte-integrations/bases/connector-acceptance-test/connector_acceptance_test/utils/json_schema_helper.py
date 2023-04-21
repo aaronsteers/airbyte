@@ -126,7 +126,7 @@ class JsonSchemaHelper:
         """
         Returns the parent path of the supplied path
         """
-        absolute_path = f"/{path}" if not path.startswith("/") else path
+        absolute_path = path if path.startswith("/") else f"/{path}"
         parent_path, _ = absolute_path.rsplit(sep="/", maxsplit=1)
         return parent_path
 
@@ -177,9 +177,12 @@ def get_object_structure(obj: dict) -> List[str]:
         if path:
             paths.append(path)
         if isinstance(obj, dict):
-            return {k: _traverse_obj_and_get_path(v, path + "/" + k) for k, v in obj.items()}
+            return {
+                k: _traverse_obj_and_get_path(v, f"{path}/{k}")
+                for k, v in obj.items()
+            }
         elif isinstance(obj, list) and len(obj) > 0:
-            return [_traverse_obj_and_get_path(obj[0], path + "/[]")]
+            return [_traverse_obj_and_get_path(obj[0], f"{path}/[]")]
 
     _traverse_obj_and_get_path(obj)
 
@@ -217,8 +220,10 @@ def get_expected_schema_structure(schema: dict, annotate_one_of: bool = False) -
         if "oneOf" in subschema or "anyOf" in subschema:
             if annotate_one_of:
                 return [
-                    _scan_schema({"type": "object", **s}, path + f"({num})")
-                    for num, s in enumerate(subschema.get("oneOf") or subschema.get("anyOf"))
+                    _scan_schema({"type": "object", **s}, f"{path}({num})")
+                    for num, s in enumerate(
+                        subschema.get("oneOf") or subschema.get("anyOf")
+                    )
                 ]
             return [_scan_schema({"type": "object", **s}, path) for s in subschema.get("oneOf") or subschema.get("anyOf")]
         schema_type = subschema.get("type", ["object", "null"])
@@ -232,10 +237,10 @@ def get_expected_schema_structure(schema: dict, annotate_one_of: bool = False) -
                 if path:
                     paths.append(path)
                 return
-            return {k: _scan_schema(v, path + "/" + k) for k, v in props.items()}
+            return {k: _scan_schema(v, f"{path}/{k}") for k, v in props.items()}
         elif "array" in schema_type:
             items = subschema.get("items", {})
-            return [_scan_schema(items, path + "/[]")]
+            return [_scan_schema(items, f"{path}/[]")]
         paths.append(path)
 
     _scan_schema(schema)

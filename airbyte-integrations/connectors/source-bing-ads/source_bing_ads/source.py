@@ -102,10 +102,9 @@ class BingAdsStream(Stream, ABC):
             "params": params,
         }
         request = self.client.request(**request_kwargs)
-        if self.use_cache:
-            with CACHE.use_cassette():
-                return request
-        else:
+        if not self.use_cache:
+            return request
+        with CACHE.use_cassette():
             return request
 
     def read_records(
@@ -128,9 +127,7 @@ class BingAdsStream(Stream, ABC):
                 account_id=account_id,
             )
             response = self.send_request(params, customer_id=customer_id, account_id=account_id)
-            for record in self.parse_response(response):
-                yield record
-
+            yield from self.parse_response(response)
             next_page_token = self.next_page_token(response, current_page_token=next_page_token)
             if not next_page_token:
                 break
@@ -738,8 +735,12 @@ class SourceBingAds(AbstractSource):
     def check_connection(self, logger: AirbyteLogger, config: Mapping[str, Any]) -> Tuple[bool, Any]:
         try:
             client = Client(**config)
-            account_ids = {str(account["Id"]) for account in Accounts(client, config).read_records(SyncMode.full_refresh)}
-            if account_ids:
+            if account_ids := {
+                str(account["Id"])
+                for account in Accounts(client, config).read_records(
+                    SyncMode.full_refresh
+                )
+            }:
                 return True, None
             else:
                 raise Exception("You don't have accounts assigned to this user.")

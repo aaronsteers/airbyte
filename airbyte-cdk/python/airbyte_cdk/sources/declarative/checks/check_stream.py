@@ -40,10 +40,7 @@ class CheckStream(ConnectionChecker):
             availability_strategy = stream.availability_strategy or HttpAvailabilityStrategy()
             try:
                 stream_is_available, reason = availability_strategy.check_availability(stream, logger, source)
-                if stream_is_available:
-                    return True, None
-                else:
-                    return False, reason
+                return (True, None) if stream_is_available else (False, reason)
             except Exception as error:
                 logger.error(f"Encountered an error trying to connect to stream {stream_name}. Error: \n {traceback.format_exc()}")
                 return False, f"Unable to connect to stream {stream_name} - {error}"

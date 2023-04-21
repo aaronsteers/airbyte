@@ -4,4 +4,4 @@
 
 # fixture for the _customIntegrationTest test.
 def test_fixture():
-    assert True
+    pass

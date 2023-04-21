@@ -38,11 +38,11 @@ def remove_lines(lines):
     """
     line_iterator = iter(lines)
     while line := next(line_iterator, None):
-        default_group_search = re.search('(\\s*)type:\\s"?DefaultPaginator', line)
-
-        if default_group_search:
+        if default_group_search := re.search(
+            '(\\s*)type:\\s"?DefaultPaginator', line
+        ):
             loop_over_default_paginator_attributes = True
-            default_paginator_properties_indentation = default_group_search.group(1)
+            default_paginator_properties_indentation = default_group_search[1]
             while loop_over_default_paginator_attributes:
                 if default_paginator_properties_indentation not in line:
                     loop_over_default_paginator_attributes = False

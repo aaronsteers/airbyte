@@ -160,7 +160,9 @@ def test_substream_slicer(test_name, parent_stream_configs, expected_slices):
         except ValueError:
             return
     partition_router = SubstreamPartitionRouter(parent_stream_configs=parent_stream_configs, parameters={}, config={})
-    slices = [s for s in partition_router.stream_slices(SyncMode.incremental, stream_state=None)]
+    slices = list(
+        partition_router.stream_slices(SyncMode.incremental, stream_state=None)
+    )
     assert slices == expected_slices
 
 

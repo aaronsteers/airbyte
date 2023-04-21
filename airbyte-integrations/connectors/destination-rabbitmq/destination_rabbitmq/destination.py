@@ -23,12 +23,10 @@ def create_connection(config: Mapping[str, Any]) -> BlockingConnection:
     password = config.get("password")
     virtual_host = config.get("virtual_host", "")
     ssl_enabled = config.get("ssl", False)
-    amqp_protocol = "amqp"
     host_url = host
-    if ssl_enabled:
-        amqp_protocol = "amqps"
+    amqp_protocol = "amqps" if ssl_enabled else "amqp"
     if port:
-        host_url = host + ":" + str(port)
+        host_url = f"{host}:{str(port)}"
     credentials = f"{username}:{password}@" if username and password else ""
     params = pika.URLParameters(f"{amqp_protocol}://{credentials}{host_url}/{virtual_host}")
     return BlockingConnection(params)

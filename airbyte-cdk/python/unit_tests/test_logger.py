@@ -12,8 +12,7 @@ from airbyte_cdk.logger import AirbyteLogFormatter
 
 @pytest.fixture(scope="session")
 def logger():
-    logger = logging.getLogger("airbyte.Testlogger")
-    return logger
+    return logging.getLogger("airbyte.Testlogger")
 
 
 def test_formatter(logger, caplog):

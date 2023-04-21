@@ -241,7 +241,7 @@ def test_add_partition_column():
             }
         )
         assert writer._add_partition_column("datetime_col", df) == expected_columns
-        assert all([col in df.columns for col in expected_columns])
+        assert all(col in df.columns for col in expected_columns)
 
 
 def test_get_glue_dtypes_from_json_schema():

@@ -61,13 +61,15 @@ class MinMaxDatetime:
         time = self._parser.parse(str(self.datetime.eval(config, **additional_parameters)), datetime_format, self.timezone)
 
         if self.min_datetime:
-            min_time = str(self.min_datetime.eval(config, **additional_parameters))
-            if min_time:
+            if min_time := str(
+                self.min_datetime.eval(config, **additional_parameters)
+            ):
                 min_time = self._parser.parse(min_time, datetime_format, self.timezone)
                 time = max(time, min_time)
         if self.max_datetime:
-            max_time = str(self.max_datetime.eval(config, **additional_parameters))
-            if max_time:
+            if max_time := str(
+                self.max_datetime.eval(config, **additional_parameters)
+            ):
                 max_time = self._parser.parse(max_time, datetime_format, self.timezone)
                 time = min(time, max_time)
         return time

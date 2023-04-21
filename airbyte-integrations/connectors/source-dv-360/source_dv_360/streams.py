@@ -44,9 +44,7 @@ def chunk_date_range(
     start_date = pendulum.parse(start_date)
 
     # to return some state when state is abnormal
-    if start_date > end_date:
-        start_date = end_date
-
+    start_date = min(start_date, end_date)
     while start_date < end_date:
         intervals.append(
             {
@@ -76,9 +74,7 @@ class DBM:
         end_date = pendulum.parse(end_date) if end_date else pendulum.yesterday()
 
         # check if start date is after end date
-        if start_date > end_date:
-            start_date = end_date
-
+        start_date = min(start_date, end_date)
         start_date_ms = str(int(start_date.timestamp() * 1000))
         end_date_ms = str(int(end_date.timestamp() * 1000))
 
@@ -94,8 +90,7 @@ class DBM:
         :return: A list of fields
         """
         schema_fields = schema.get("properties").keys()
-        fields = [field for field in schema_fields if field in catalog_fields]
-        return fields
+        return [field for field in schema_fields if field in catalog_fields]
 
     @staticmethod
     def convert_fields(fields: List[str]) -> List[str]:
@@ -116,8 +111,7 @@ class DBM:
         :return: A list of dimensions in the naming form of the API
         """
         conv_fields = DBM.convert_fields(fields)
-        dimensions = [field for field in conv_fields if field.startswith("FILTER")]
-        return dimensions
+        return [field for field in conv_fields if field.startswith("FILTER")]
 
     @staticmethod
     def get_metrics_from_fields(fields: List[str]) -> List[str]:
@@ -128,8 +122,7 @@ class DBM:
         :return: A list of metrics in the naming form of the API
         """
         conv_fields = DBM.convert_fields(fields)
-        metrics = [field for field in conv_fields if field.startswith("METRIC")]
-        return metrics
+        return [field for field in conv_fields if field.startswith("METRIC")]
 
     @staticmethod
     def set_partner_filter(query: Mapping[str, Any], partner_id: str):
@@ -137,8 +130,7 @@ class DBM:
         set the partner id filter to the partner id in the config
         :param query: the query object where the filter is to be set
         """
-        filters = query.get("params").get("filters")
-        if filters:
+        if filters := query.get("params").get("filters"):
             partner_filter_index = next(
                 (index for (index, filter) in enumerate(filters) if filter["type"] == "FILTER_PARTNER"), None
             )  # get the index of the partner filter
@@ -213,10 +205,11 @@ class DBM:
             filters=filters or [],
         )
         create_query = self.service.queries().createquery(body=query).execute()  # Create query
-        get_query = (
-            self.service.queries().getquery(queryId=create_query.get("queryId")).execute()
-        )  # get the query which will include the report url
-        return get_query
+        return (
+            self.service.queries()
+            .getquery(queryId=create_query.get("queryId"))
+            .execute()
+        )
 
 
 class DBMStream(Stream, ABC):
@@ -240,7 +233,7 @@ class DBMStream(Stream, ABC):
 
         :return the created query
         """
-        query = self.dbm.convert_schema_into_query(
+        return self.dbm.convert_schema_into_query(
             schema=self.get_json_schema(),
             catalog_fields=catalog_fields,
             filters=self._filters,
@@ -249,7 +242,6 @@ class DBMStream(Stream, ABC):
             end_date=self._end_date,
             partner_id=self._partner_id,
         )
-        return query
 
     def read_records(self, catalog_fields: List[str], stream_slice: Mapping[str, Any] = None, sync_mode=None):
         """
@@ -271,7 +263,7 @@ class DBMStream(Stream, ABC):
             nb_rows = len(list_reader)
             for index, row in enumerate(list_reader):
                 # In the case of the standard report, we are getting an additional summary row, therefore we need to exclude it.
-                if not (report_type == "TYPE_GENERAL" and index > nb_rows - 2):
+                if report_type != "TYPE_GENERAL" or index <= nb_rows - 2:
                     yield row
 
     def buffer_reader(self, buffer: io.StringIO):
@@ -303,10 +295,9 @@ class DBMIncrementalStream(DBMStream, ABC):
         record_value = latest_record[self.cursor_field]
         state_value = current_stream_state.get(self.cursor_field) or record_value
         max_cursor = max(pendulum.parse(state_value), pendulum.parse(record_value))
-        toreturn = {
+        return {
             self.cursor_field: max_cursor.to_date_string(),
         }
-        return toreturn
 
     def stream_slices(self, stream_state: Mapping[str, Any] = None, **kwargs) -> Iterable[Optional[Mapping[str, any]]]:
         """
@@ -314,14 +305,12 @@ class DBMIncrementalStream(DBMStream, ABC):
         """
         stream_state = stream_state or {}
         start_date = stream_state.get(self.cursor_field) or self._start_date
-        date_chunks = chunk_date_range(
+        yield from chunk_date_range(
             start_date=start_date,
             end_date=self._end_date,
             field=self.cursor_field,
             range_days=self.range_days,
         )
-        for chunk in date_chunks:
-            yield chunk
 
     def read_records(
         self,
@@ -346,7 +335,7 @@ class DBMIncrementalStream(DBMStream, ABC):
 
         :return the created query
         """
-        query = self.dbm.convert_schema_into_query(
+        return self.dbm.convert_schema_into_query(
             schema=self.get_json_schema(),
             catalog_fields=catalog_fields,
             filters=self._filters,
@@ -355,7 +344,6 @@ class DBMIncrementalStream(DBMStream, ABC):
             end_date=stream_slice.get("end_date"),
             partner_id=self._partner_id,
         )
-        return query
 
 
 class AudienceComposition(DBMIncrementalStream):

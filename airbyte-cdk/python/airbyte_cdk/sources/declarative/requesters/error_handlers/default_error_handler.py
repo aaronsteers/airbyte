@@ -139,10 +139,7 @@ class DefaultErrorHandler(ErrorHandler):
             if matched_status is not None:
                 return matched_status
 
-        if response.ok:
-            return response_status.SUCCESS
-        # Fail if the response matches no filters
-        return response_status.FAIL
+        return response_status.SUCCESS if response.ok else response_status.FAIL
 
     def _backoff_time(self, response: requests.Response, attempt_count: int) -> Optional[float]:
         backoff = None

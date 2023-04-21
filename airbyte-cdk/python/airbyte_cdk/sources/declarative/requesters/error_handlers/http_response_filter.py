@@ -96,6 +96,5 @@ class HttpResponseFilter:
     def _response_contains_error_message(self, response: requests.Response) -> bool:
         if not self.error_message_contains:
             return False
-        else:
-            error_message = HttpStream.parse_response_error_message(response)
-            return error_message and self.error_message_contains in error_message
+        error_message = HttpStream.parse_response_error_message(response)
+        return error_message and self.error_message_contains in error_message

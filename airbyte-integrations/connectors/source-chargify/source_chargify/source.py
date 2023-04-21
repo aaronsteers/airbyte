@@ -31,9 +31,7 @@ class ChargifyStream(HttpStream, ABC):
 
     def next_page_token(self, response: requests.Response) -> Optional[Mapping[str, Any]]:
 
-        results = response.json()
-
-        if results:
+        if results := response.json():
             if len(results) == self.PER_PAGE:
                 url_query = urlparse(response.url).query
                 query_params = parse_qs(url_query)

@@ -66,10 +66,12 @@ class AirbyteTracedException(Exception):
 
     def as_connection_status_message(self) -> AirbyteMessage:
         if self.failure_type == FailureType.config_error:
-            output_message = AirbyteMessage(
-                type=MessageType.CONNECTION_STATUS, connectionStatus=AirbyteConnectionStatus(status=Status.FAILED, message=self.message)
+            return AirbyteMessage(
+                type=MessageType.CONNECTION_STATUS,
+                connectionStatus=AirbyteConnectionStatus(
+                    status=Status.FAILED, message=self.message
+                ),
             )
-            return output_message
 
     def emit_message(self):
         """

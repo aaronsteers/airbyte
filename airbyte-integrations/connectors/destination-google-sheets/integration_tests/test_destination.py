@@ -75,7 +75,7 @@ def test_write(expected, raised):
             )
         )
 
-    assert True if not raised else any(msg == expected for msg in output)
+    assert any(msg == expected for msg in output) if raised else True
 
     # clean wks after the test
     test_wks = TEST_SPREADSHEET.open_worksheet(TEST_STREAM)

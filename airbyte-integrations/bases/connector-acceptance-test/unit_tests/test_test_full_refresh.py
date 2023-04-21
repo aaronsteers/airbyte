@@ -41,8 +41,7 @@ def record_message_from_record(records: List[Dict], emitted_at: int) -> List[Air
 
 def get_default_catalog(schema, **kwargs):
     configured_catalog_kwargs = {"sync_mode": "full_refresh", "destination_sync_mode": "overwrite"}
-    primary_key = kwargs.get("primary_key")
-    if primary_key:
+    if primary_key := kwargs.get("primary_key"):
         configured_catalog_kwargs["primary_key"] = primary_key
     return ConfiguredAirbyteCatalog(
         streams=[

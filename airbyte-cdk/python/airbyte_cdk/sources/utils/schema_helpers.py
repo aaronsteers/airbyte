@@ -140,7 +140,7 @@ class ResourceSchemaLoader:
         """
 
         package = importlib.import_module(self.package_name)
-        base = os.path.dirname(package.__file__) + "/"
+        base = f"{os.path.dirname(package.__file__)}/"
         resolved = jsonref.JsonRef.replace_refs(raw_schema, loader=JsonFileLoader(base, "schemas/shared"), base_uri=base)
         resolved = resolve_ref_links(resolved)
         return resolved
@@ -159,10 +159,10 @@ def check_config_against_spec_or_exit(config: Mapping[str, Any], spec: Connector
         validate(instance=config, schema=spec_schema)
     except ValidationError as validation_error:
         raise AirbyteTracedException(
-            message="Config validation error: " + validation_error.message,
+            message=f"Config validation error: {validation_error.message}",
             internal_message=validation_error.message,
             failure_type=FailureType.config_error,
-        ) from None  # required to prevent logging config secrets from the ValidationError's stacktrace
+        ) from None
 
 
 class InternalConfig(BaseModel):

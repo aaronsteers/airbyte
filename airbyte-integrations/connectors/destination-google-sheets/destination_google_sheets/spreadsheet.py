@@ -56,10 +56,7 @@ class GoogleSheets:
             {"id": 1, "name": 2, ..., "other": 99}
         """
         header = stream[1]  # get the first row
-        col_index = {}
-        for i, col in enumerate(header):
-            col_index[col] = i + 1
-        return col_index
+        return {col: i + 1 for i, col in enumerate(header)}
 
     def find_duplicates(self, stream: Worksheet, primary_key: str):
         """

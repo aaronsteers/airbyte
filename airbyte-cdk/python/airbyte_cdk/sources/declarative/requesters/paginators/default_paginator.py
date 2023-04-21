@@ -103,10 +103,7 @@ class DefaultPaginator(Paginator):
 
     def next_page_token(self, response: requests.Response, last_records: List[Mapping[str, Any]]) -> Optional[Mapping[str, Any]]:
         self._token = self.pagination_strategy.next_page_token(response, last_records)
-        if self._token:
-            return {"next_page_token": self._token}
-        else:
-            return None
+        return {"next_page_token": self._token} if self._token else None
 
     def path(self):
         if self._token and self.page_token_option and isinstance(self.page_token_option, RequestPath):

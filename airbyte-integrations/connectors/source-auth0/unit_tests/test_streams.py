@@ -45,8 +45,7 @@ class TestAuth0Stream:
     def test_auth0_stream_backoff_time(self, patch_base_class, url_base):
         response_mock = requests.Response()
         stream = Auth0Stream(url_base=url_base)
-        expected_backoff_time = None
-        assert stream.backoff_time(response_mock) == expected_backoff_time
+        assert stream.backoff_time(response_mock) is None
 
     def test_auth0_stream_incremental_request_params(self, patch_base_class, url_base):
         stream = IncrementalAuth0Stream(url_base=url_base)
@@ -71,16 +70,14 @@ class TestAuth0Stream:
     def test_incremental_auth0_stream_backoff_time(self, patch_base_class, url_base):
         response_mock = MagicMock()
         stream = IncrementalAuth0Stream(url_base=url_base)
-        expected_backoff_time = None
-        assert stream.backoff_time(response_mock) == expected_backoff_time
+        assert stream.backoff_time(response_mock) is None
 
     def test_auth0_stream_incremental_backoff_time_empty(self, patch_base_class, url_base):
         stream = IncrementalAuth0Stream(url_base=url_base)
         response = MagicMock(requests.Response)
         response.status_code = 200
-        expected_params = None
         inputs = {"response": response}
-        assert stream.backoff_time(**inputs) == expected_params
+        assert stream.backoff_time(**inputs) is None
 
     def test_auth0_stream_incremental_back_off_now(self, patch_base_class, url_base):
         stream = IncrementalAuth0Stream(url_base=url_base)
@@ -135,9 +132,8 @@ class TestNextPageToken:
         response = MagicMock(requests.Response)
         response.json = MagicMock(return_value=json)
         inputs = {"response": response}
-        expected_token = None
         result = stream.next_page_token(**inputs)
-        assert result == expected_token
+        assert result is None
 
     def test_next_page_token_missing_cursor(self, patch_base_class, url_base):
         stream = Auth0Stream(url_base=url_base)
@@ -148,9 +144,8 @@ class TestNextPageToken:
         response = MagicMock(requests.Response)
         response.json = MagicMock(return_value=json)
         inputs = {"response": response}
-        expected_token = None
         result = stream.next_page_token(**inputs)
-        assert result == expected_token
+        assert result is None
 
     def test_next_page_token_one_page_only(self, patch_base_class, url_base):
         stream = Auth0Stream(url_base=url_base)
@@ -163,9 +158,8 @@ class TestNextPageToken:
         response = MagicMock(requests.Response)
         response.json = MagicMock(return_value=json)
         inputs = {"response": response}
-        expected_token = None
         result = stream.next_page_token(**inputs)
-        assert result == expected_token
+        assert result is None
 
     def test_next_page_token_last_page_incomplete(self, patch_base_class, url_base):
         stream = Auth0Stream(url_base=url_base)
@@ -178,9 +172,8 @@ class TestNextPageToken:
         response = MagicMock(requests.Response)
         response.json = MagicMock(return_value=json)
         inputs = {"response": response}
-        expected_token = None
         result = stream.next_page_token(**inputs)
-        assert result == expected_token
+        assert result is None
 
     def test_next_page_token_last_page_complete(self, patch_base_class, url_base):
         stream = Auth0Stream(url_base=url_base)
@@ -193,9 +186,8 @@ class TestNextPageToken:
         response = MagicMock(requests.Response)
         response.json = MagicMock(return_value=json)
         inputs = {"response": response}
-        expected_token = None
         result = stream.next_page_token(**inputs)
-        assert result == expected_token
+        assert result is None
 
 
 class TestStreamUsers:
